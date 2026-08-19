@@ -26,9 +26,10 @@ func _ready() -> void:
 func set_leira(idx: int) -> void:
 	indice = idx
 	var l: Dictionary = GameState.leiras[idx]
-	var tipo_nome: String = Data.TIPOS_LEIRA[l["tipo"]]["nombre"]
+	var cul: Dictionary = GameState.cultivo_de(l)
+	var unidade: String = cul["unidad"]
 	var estrelas := "★".repeat(int(l["calidade"]))
-	lbl_nome.text = "%s — %s %s" % [l["nome"], tipo_nome, estrelas]
+	lbl_nome.text = "%s — %s %s" % [l["nome"], cul["nombre"], estrelas]
 
 	# En pleito: se muestra el estado del litigio y se ocultan las acciones.
 	if l.get("pleito", false):
@@ -44,17 +45,20 @@ func set_leira(idx: int) -> void:
 	var caducado: bool = l["estado"] == "aforada" and int(l["voces"]) <= 0
 	match l["estado"]:
 		"aforada":
-			var txt := "Aforada a %s · renta: %s · voces: %d" % [
-				l["forero"], GameState._nome_fraccion(l["fraccion"]), int(l["voces"])]
+			var txt := "Aforada a %s · renta %s: ≈%d %s/año · voces: %d" % [
+				l["forero"], GameState._nome_fraccion(l["fraccion"]),
+				int(GameState.renta_leira(l)), unidade, int(l["voces"])]
 			if float(l["morosidade"]) > 0.0:
-				txt += " · deuda: %d" % int(l["morosidade"])
+				txt += " · deuda: %d %s" % [int(l["morosidade"]), unidade]
 			if caducado:
 				txt += "   ⚠ CADUCADO"
 			lbl_estado.text = txt
 		"directa":
-			lbl_estado.text = "Explotación directa del monasterio · rinde %d/año" % int(GameState.rendemento_leira(l))
+			lbl_estado.text = "Explotación directa del monasterio · rinde %d %s/año" % [
+				int(GameState.rendemento_leira(l)), unidade]
 		_:
-			lbl_estado.text = "Yerma, sin cultivar · rendiría %d/año a pleno" % int(GameState.rendemento_leira(l))
+			lbl_estado.text = "Yerma, sin cultivar · rendiría %d %s/año a pleno" % [
+				int(GameState.rendemento_leira(l)), unidade]
 
 	btn_aforar.visible = l["estado"] == "yerma" or l["estado"] == "directa"
 	btn_renovar.visible = caducado

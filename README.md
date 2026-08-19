@@ -55,14 +55,24 @@ del monasterio. Si te quedas sin monjes (hambruna o pestes), fin de la partida.
 Modela el funcionamiento real de la economía monástica gallega bajomedieval:
 
 - **Patrimonio de leiras (parcelas)**: cada heredad tiene un nombre real del
-  Deza (p. ej. *o Cortiñal de Ansemil*), un tipo (cereal/centeo, viñedo o
-  souto de castañas) y una calidad (★–★★★). Puede estar **yerma**, en
-  **explotación directa** del monasterio o **aforada**.
+  Deza (p. ej. *o Cortiñal de Ansemil*), un **cultivo** y una calidad (★–★★★).
+  Puede estar **yerma**, en **explotación directa** del monasterio o **aforada**.
+- **Cultivos y ferrados**: cada leira da un cultivo propio del contorno de su
+  aldea, con rendimiento y valor distintos:
+  - **Centeno** — el pan de Galicia: rústico, mucho rendimiento, poco valor.
+  - **Trigo** — cereal noble: menos ferrados pero se vende caro (da plata).
+  - **Mijo** — cereal tradicional, intermedio.
+  - **Viñedo** — rinde **vino** (en *azumbres*), de gran valor.
+  - **Souto de castañas** — alimento del monte; su renta suele incluir un puerco.
+
+  El grano y las castañas se miden en **ferrados** y el vino en **azumbres**.
 - **Foros**: cedes el *dominio útil* de una leira a una familia campesina
   (*os de Seixas*…) **por tres voces**, conservando el *dominio directo*. A
-  cambio percibes una **renta foral** en especie (un *cuarto*, *quinto*,
-  *sétimo*…) que se cobra cada año por **San Martiño**. Mayor fracción = más
-  renta pero más **malestar**.
+  cambio percibes una **renta foral** en especie —una fracción (*cuarto*,
+  *quinto*, *sétimo*…) de la cosecha en ferrados o azumbres— más los **foros
+  miúdos**: renta accesoria en **animales** (capones, gallinas, huevos o un
+  puerco) según el cultivo y la zona, que se cobra cada año por **San Martiño**.
+  Mayor fracción = más renta pero más **malestar**.
 - **Voces y renovación**: al morir cada generación pasa una voz (y pagan la
   *luctuosa*). Agotadas las tres, el foro **caduca** y puedes **renovarlo**
   (normalmente subiendo la renta) o **recuperar** la tierra para explotarla
@@ -102,7 +112,7 @@ scenes/
   LeiraRow.tscn               Fila de una leira dentro del señorío
 scripts/
   Data.gd                     Datos: recursos, oficios, edificios, eventos,
-                              comarcas, familias, tipos de leira, topónimos
+                              comarcas, familias, cultivos, fracciones, topónimos
   GameState.gd                Lógica de simulación, fundación, mapa y señorío
   Fundacion.gd                Pantalla de fundación
   Ground.gd                   Pinta el terreno generado con el TileSet

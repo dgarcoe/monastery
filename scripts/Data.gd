@@ -227,12 +227,41 @@ const NOMES_ALDEA := [
 	"Escuadro", "Dornelas", "Cristimil", "Toiriz", "Xestoso", "Bermés",
 ]
 
-# --- Sistema foral: patrimonio de tierras -----------------------------------
-# Tipos de leira (parcela) y el recurso anual que rinden.
-const TIPOS_LEIRA := {
-	"cereal": {"nombre": "Cereal (centeo)", "recurso": "comida", "base": 20.0},
-	"vinha":  {"nombre": "Viñedo",          "recurso": "vino",   "base": 12.0},
-	"souto":  {"nombre": "Souto (castañas)", "recurso": "comida", "base": 14.0},
+# --- Sistema foral: cultivos ------------------------------------------------
+# Cultivo de cada leira. La renta foral se mide en FERRADOS (grano y castañas)
+# o en AZUMBRES (vino).
+#   producto : "grao" | "castañas" | "vino"  (grano y castañas alimentan; vino no)
+#   base     : ferrados/azumbres por año a plena calidad
+#   valor    : plata por unidad al venderse (los cereales nobles valen más)
+#   alimento : ferrados de sustento que aporta cada unidad
+#   zonas    : contornos donde se da este cultivo
+#   animais  : renta accesoria en animales (plata) y su descripción ("foros miúdos")
+const CULTIVOS := {
+	"centeno": {
+		"nombre": "Centeno", "producto": "grao", "unidad": "ferrados",
+		"base": 24.0, "valor": 1.0, "alimento": 1.0, "zonas": ["cereal", "mixta"],
+		"animais": 2.0, "animais_desc": "un par de capones",
+	},
+	"trigo": {
+		"nombre": "Trigo", "producto": "grao", "unidad": "ferrados",
+		"base": 14.0, "valor": 2.4, "alimento": 1.1, "zonas": ["cereal"],
+		"animais": 3.0, "animais_desc": "capones y huevos",
+	},
+	"mijo": {
+		"nombre": "Mijo", "producto": "grao", "unidad": "ferrados",
+		"base": 18.0, "valor": 1.2, "alimento": 0.9, "zonas": ["cereal", "mixta"],
+		"animais": 2.0, "animais_desc": "gallinas",
+	},
+	"vinha": {
+		"nombre": "Viñedo", "producto": "vino", "unidad": "azumbres",
+		"base": 16.0, "valor": 3.0, "alimento": 0.0, "zonas": ["vinha", "mixta"],
+		"animais": 2.0, "animais_desc": "gallinas",
+	},
+	"souto": {
+		"nombre": "Souto de castañas", "producto": "castañas", "unidad": "ferrados",
+		"base": 15.0, "valor": 0.8, "alimento": 0.8, "zonas": ["souto", "mixta"],
+		"animais": 6.0, "animais_desc": "un puerco cebado",
+	},
 }
 
 # Fracciones de renta foral (parte de la cosecha que percibe el monasterio).

@@ -230,22 +230,23 @@ func _nova_aldea(x: int, y: int, c: Dictionary) -> Dictionary:
 		"afinidade": 55,
 	}
 
-func _tipo_por_zona(zona: String) -> String:
-	match zona:
-		"cereal": return "cereal"
-		"vinha": return "vinha"
-		"souto": return "souto"
-		_:
-			var t := ["cereal", "vinha", "souto"]
-			return t[randi() % t.size()]
+## Elige un cultivo propio de la zona indicada.
+func _cultivo_por_zona(zona: String) -> String:
+	var candidatos: Array = []
+	for id in Data.CULTIVOS:
+		if zona in Data.CULTIVOS[id]["zonas"]:
+			candidatos.append(id)
+	if candidatos.is_empty():
+		return "centeno"
+	return candidatos[randi() % candidatos.size()]
 
 ## Crea una leira nueva vinculada a una aldea al azar (según su zona).
 func _nova_leira_en_aldea() -> Dictionary:
-	var l := _nova_leira("cereal", 1 + randi() % 3)
+	var l := _nova_leira("centeno", 1 + randi() % 3)
 	if aldeas.size() > 0:
 		var a: Dictionary = aldeas[randi() % aldeas.size()]
 		l["aldea"] = a["nome"]
-		l["tipo"] = _tipo_por_zona(a["zona"])
+		l["cultivo"] = _cultivo_por_zona(a["zona"])
 		l["nome"] = "%s de %s" % [
 			Data.TOPONIMOS_LEIRA[randi() % Data.TOPONIMOS_LEIRA.size()], a["nome"]]
 	return l
@@ -456,26 +457,34 @@ func _nome_leira() -> String:
 	var lugar: String = Data.LUGARES[randi() % Data.LUGARES.size()]
 	return "%s de %s" % [top, lugar]
 
-## Crea una nueva leira (parcela) yerma del tipo y calidad dados.
-func _nova_leira(tipo: String, calidade: int) -> Dictionary:
+## Crea una nueva leira (parcela) yerma del cultivo y calidad dados.
+func _nova_leira(cultivo: String, calidade: int) -> Dictionary:
 	return {
 		"nome": _nome_leira(),
-		"tipo": tipo,
+		"cultivo": cultivo,          # centeno | trigo | mijo | vinha | souto
 		"calidade": calidade,        # 1..3
 		"estado": "yerma",           # yerma | directa | aforada
 		"forero": "",
 		"fraccion": 0.0,
 		"voces": 0,                  # voces restantes del contrato
-		"morosidade": 0.0,           # renta atrasada acumulada
+		"morosidade": 0.0,           # renta atrasada acumulada (en ferrados/azumbres)
 		"aldea": "",                 # aldea a la que pertenece la heredad
 		"pleito": false,             # ¿litigio en curso ante la Audiencia?
 		"pleito_causa": "",          # impago | recuperacion
 		"pleito_anos": 0,            # años que lleva el pleito
 	}
 
+## Definición del cultivo de una leira.
+func cultivo_de(leira: Dictionary) -> Dictionary:
+	return Data.CULTIVOS.get(leira.get("cultivo", "centeno"), Data.CULTIVOS["centeno"])
+
+## Recurso del monasterio que alimenta este cultivo: "comida" o "vino".
+func _recurso_de_cultivo(leira: Dictionary) -> String:
+	return "vino" if cultivo_de(leira)["producto"] == "vino" else "comida"
+
+## Producción anual bruta de una leira (en ferrados o azumbres), con su calidad.
 func rendemento_leira(leira: Dictionary) -> float:
-	# Producción anual bruta de una leira a calidad plena (sin clima).
-	var base: float = Data.TIPOS_LEIRA[leira["tipo"]]["base"]
+	var base: float = cultivo_de(leira)["base"]
 	var mults := [0.0, 1.0, 1.4, 1.8]
 	var mult: float = mults[int(leira["calidade"])]
 	return base * mult
@@ -487,13 +496,23 @@ func contar_leiras(estado: String) -> int:
 			n += 1
 	return n
 
-## Renta foral anual estimada (en unidades de recurso) sumando los foros.
-func renta_foral_estimada() -> float:
-	var total := 0.0
+## Renta foral anual estimada, separada en ferrados de grano/castañas y
+## azumbres de vino (a calidad plena, sin clima).
+func renta_foral_estimada() -> Dictionary:
+	var grao := 0.0
+	var vino := 0.0
 	for l in leiras:
 		if l["estado"] == "aforada":
-			total += rendemento_leira(l) * float(l["fraccion"])
-	return total
+			var r := rendemento_leira(l) * float(l["fraccion"])
+			if cultivo_de(l)["producto"] == "vino":
+				vino += r
+			else:
+				grao += r
+	return {"grao": grao, "vino": vino}
+
+## Renta esperada (en su unidad) de una leira concreta según su fracción.
+func renta_leira(leira: Dictionary) -> float:
+	return rendemento_leira(leira) * float(leira.get("fraccion", 0.0))
 
 # --- Acciones del señorío (invocadas desde la interfaz) ---------------------
 
@@ -634,32 +653,38 @@ func _presion_fraccion(valor: float) -> float:
 func _reckoning_foral() -> void:
 	var clima := randf_range(0.7, 1.2)  # cosecha del año
 	var estacion_txt := "San Martiño del año %d" % anio
-	var renta_comida := 0.0
-	var renta_vino := 0.0
-	var renta_plata := 0.0
+	var larder := 0.0          # ferrados de sustento que entran en el cillero
+	var azumbres := 0.0        # vino recaudado
+	var renta_plata := 0.0     # sobreprecio del grano noble, foros miúdos y luctuosas
 	var suma_presion := 0.0
 	var n_aforadas := 0
+	var ferrados_msg: Dictionary = {}   # nombre de cultivo -> ferrados recaudados
+	var animais: Dictionary = {}        # descripciones de foros miúdos (animales)
 
 	for l in leiras:
-		var recurso: String = Data.TIPOS_LEIRA[l["tipo"]]["recurso"]
 		if l.get("pleito", false):
 			continue  # las tierras en litigio no rinden renta hasta la sentencia
+		var cul := cultivo_de(l)
+		var es_vino: bool = cul["producto"] == "vino"
+		var premio: float = maxf(0.0, float(cul["valor"]) - 1.0)  # sobreprecio del grano noble
 		match l["estado"]:
 			"aforada":
 				n_aforadas += 1
 				suma_presion += _presion_fraccion(l["fraccion"])
-				var cosecha := rendemento_leira(l) * clima
-				var renta := cosecha * float(l["fraccion"])
+				var renta := rendemento_leira(l) * clima * float(l["fraccion"])
 				# Impago si el malestar es alto.
 				if malestar > 50.0 and randf() < (malestar - 50.0) / 90.0:
 					l["morosidade"] += renta
 					mensaje.emit("%s no pudo pagar la renta de «%s»." % [l["forero"], l["nome"]])
 				else:
-					renta_plata += 1.0  # dereitos, capones y foros en dinero
-					if recurso == "vino":
-						renta_vino += renta
+					if es_vino:
+						azumbres += renta
 					else:
-						renta_comida += renta
+						larder += renta * float(cul["alimento"])
+						renta_plata += renta * premio * 0.5
+						ferrados_msg[cul["nombre"]] = float(ferrados_msg.get(cul["nombre"], 0.0)) + renta
+					renta_plata += float(cul["animais"])   # foros miúdos (animales)
+					animais[cul["animais_desc"]] = true
 				# Paso de una voz (muerte de una generación) y luctuosa.
 				if randf() < 0.14 and int(l["voces"]) > 0:
 					l["voces"] = int(l["voces"]) - 1
@@ -672,19 +697,17 @@ func _reckoning_foral() -> void:
 				var custo := fruto * 0.4
 				if recursos["plata"] >= custo:
 					recursos["plata"] -= custo
-					if recurso == "vino":
-						renta_vino += fruto
-					else:
-						renta_comida += fruto
 				else:
-					# Sin plata para jornaleros, solo se recoge la mitad.
-					if recurso == "vino":
-						renta_vino += fruto * 0.5
-					else:
-						renta_comida += fruto * 0.5
+					fruto *= 0.5  # sin plata para serventes, solo se recoge la mitad
+				if es_vino:
+					azumbres += fruto
+				else:
+					larder += fruto * float(cul["alimento"])
+					renta_plata += fruto * premio * 0.5
+					ferrados_msg[cul["nombre"]] = float(ferrados_msg.get(cul["nombre"], 0.0)) + fruto
 
-	recursos["comida"] = min(recursos["comida"] + renta_comida, almacen_max("comida"))
-	recursos["vino"] += renta_vino
+	recursos["comida"] = min(recursos["comida"] + larder, almacen_max("comida"))
+	recursos["vino"] += azumbres
 	recursos["plata"] += renta_plata
 
 	# Diezmo y rentas del señorío jurisdiccional (cotos y vasallos).
@@ -707,9 +730,17 @@ func _reckoning_foral() -> void:
 		malestar -= 4.0
 	malestar = clampf(malestar - 3.0, 0.0, 100.0)  # decaimiento base
 
-	if renta_comida + renta_vino > 0.0:
-		mensaje.emit("Rentas forales de %s: %d de comida, %d de vino, %d de plata." % [
-			estacion_txt, int(renta_comida), int(renta_vino), int(renta_plata + diezmo_plata)])
+	if not ferrados_msg.is_empty() or azumbres > 0.0:
+		var partes: Array = []
+		for nome in ferrados_msg:
+			partes.append("%d ferrados de %s" % [int(ferrados_msg[nome]), String(nome).to_lower()])
+		if azumbres > 0.0:
+			partes.append("%d azumbres de vino" % int(azumbres))
+		var extra := ""
+		if not animais.is_empty():
+			extra = ", con foros miúdos (%s)" % ", ".join(animais.keys())
+		mensaje.emit("Rentas forales de %s: %s%s. El monasterio ingresa %d de plata." % [
+			estacion_txt, ", ".join(partes), extra, int(renta_plata + diezmo_plata)])
 
 	_procesar_pleitos()
 	_comprobar_revuelta()
