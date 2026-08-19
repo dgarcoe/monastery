@@ -10,6 +10,7 @@ signal mensaje(texto: String)                ## Línea para el registro/crónica
 signal evento(titulo: String, texto: String) ## Evento aleatorio para mostrar.
 signal fin_de_partida(texto: String)         ## La partida ha terminado.
 signal edificio_pulsado(edificio_id: String) ## Se hizo clic en un edificio del mapa.
+signal aldea_pulsada(indice: int)             ## Se hizo clic en una aldea del mapa.
 
 # --- Estado -----------------------------------------------------------------
 var recursos: Dictionary = {}
@@ -32,19 +33,32 @@ var aniversarios: int = 0   # misas perpetuas comprometidas (donaciones)
 var malestar: float = 10.0  # descontento campesino (0..100)
 var _revuelta_ocurrida: bool = false
 
+# --- Fundación, comarca y mapa ----------------------------------------------
+const MAPA_ANCHO := 40
+const MAPA_ALTO := 26
+var fundado: bool = false
+var comarca: String = ""
+var familia: String = ""
+var terreno: Array = []          # terreno[x][y] -> id de tile (0..6)
+var aldeas: Array = []           # aldeas del contorno
+var sitio_mosteiro: Vector2i = Vector2i(20, 13)
+
 const MESES := [
 	"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
 	"Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
 ]
 
 func _ready() -> void:
-	reset()
+	# Estado neutro inicial, salvo que ya se haya fundado (p. ej. al arrancar
+	# Main directamente, cuyo _enter_tree funda antes que este _ready).
+	if not fundado:
+		reset()
 
-## Reinicia la partida a su estado inicial.
+## Estado neutro previo a la fundación (aún no hay partida).
 func reset() -> void:
 	recursos = {
-		"comida": 60.0, "plata": 30.0, "fe": 12.0,
-		"manuscritos": 0.0, "vino": 0.0, "piedra": 20.0,
+		"comida": 0.0, "plata": 0.0, "fe": 0.0,
+		"manuscritos": 0.0, "vino": 0.0, "piedra": 0.0,
 	}
 	edificios = {}
 	for e in Data.EDIFICIOS:
@@ -52,35 +66,195 @@ func reset() -> void:
 	asignacion = {}
 	for o in Data.OFICIOS:
 		asignacion[o["id"]] = 0
-	poblacion = 5
+	poblacion = 0
 	mes = 1
-	anio = 1085
+	anio = 750
 	prestigio = 0
 	terminado = false
 	_manuscritos_totales = 0.0
 	_prestigio_manuscritos_cobrado = 0
 	_hito_prestigio = false
-	# Asignación inicial razonable: labranza y oración.
-	asignacion["huerto"] = 3
-	asignacion["oracion"] = 2
-	# Patrimonio inicial del monasterio.
 	leiras = []
 	vasallos = 0
 	cotos = 0
 	aniversarios = 0
 	malestar = 10.0
 	_revuelta_ocurrida = false
-	var reserva := _nova_leira("cereal", 2)   # reserva propia, en explotación directa
-	reserva["estado"] = "directa"
-	leiras.append(reserva)
-	leiras.append(_nova_leira("vinha", 1))    # yerma, lista para aforar
-	var aforada := _nova_leira("souto", 1)    # ya aforada a una familia
-	aforada["estado"] = "aforada"
-	aforada["forero"] = _nome_familia()
-	aforada["fraccion"] = 0.20
-	aforada["voces"] = 3
-	leiras.append(aforada)
+	fundado = false
+	comarca = ""
+	familia = ""
+	terreno = []
+	aldeas = []
+
+## Funda el monasterio en la comarca elegida por la familia elegida.
+## Genera el mapa y las aldeas, y fija la dote inicial.
+func fundar(comarca_id: String, familia_id: String) -> void:
+	reset()
+	var c := _def_comarca(comarca_id)
+	var f := _def_familia(familia_id)
+	comarca = comarca_id
+	familia = familia_id
+	anio = 750
+	mes = 1
+	_xerar_mapa(c)
+	_xerar_aldeas(c)
+
+	# Dote inicial de la familia más la bonificación de la comarca.
+	recursos = {
+		"comida": 30.0, "plata": 15.0, "fe": 6.0,
+		"manuscritos": 0.0, "vino": 0.0, "piedra": 10.0,
+	}
+	for k in f["dote"]:
+		recursos[k] += float(f["dote"][k])
+	for k in c["bonus"]:
+		recursos[k] += float(c["bonus"][k])
+	recursos["fe"] += float(f["fe"])
+
+	poblacion = int(f["monjes"])
+	vasallos = int(f["vasallos"])
+	prestigio = int(f["prestigio"])
+	asignacion["huerto"] = min(3, poblacion)
+	asignacion["oracion"] = max(0, min(2, poblacion - 3))
+
+	# Patrimonio inicial de la familia, repartido entre las aldeas.
+	for i in range(int(f["leiras_directas"])):
+		var ld := _nova_leira_en_aldea()
+		ld["estado"] = "directa"
+		leiras.append(ld)
+	for i in range(int(f["leiras_aforadas"])):
+		var la := _nova_leira_en_aldea()
+		la["estado"] = "aforada"
+		la["forero"] = _nome_familia_de_aldea(la["aldea"])
+		la["fraccion"] = 0.20
+		la["voces"] = 3
+		leiras.append(la)
+
+	fundado = true
 	estado_cambiado.emit()
+
+# --- Generación del mapa ----------------------------------------------------
+
+func _def_comarca(id: String) -> Dictionary:
+	for c in Data.COMARCAS:
+		if c["id"] == id:
+			return c
+	return Data.COMARCAS[0]
+
+func _def_familia(id: String) -> Dictionary:
+	for f in Data.FAMILIAS:
+		if f["id"] == id:
+			return f
+	return Data.FAMILIAS[0]
+
+func _xerar_mapa(c: Dictionary) -> void:
+	terreno = []
+	for x in range(MAPA_ANCHO):
+		var col: Array = []
+		for y in range(MAPA_ALTO):
+			col.append(0)  # hierba
+		terreno.append(col)
+
+	# Río serpenteante de este a oeste.
+	var ry := MAPA_ALTO / 2 + (randi() % 5 - 2)
+	for x in range(MAPA_ANCHO):
+		ry += randi() % 3 - 1
+		ry = clampi(ry, 3, MAPA_ALTO - 4)
+		terreno[x][ry] = 3
+		if randf() < 0.5:
+			terreno[x][clampi(ry + 1, 0, MAPA_ALTO - 1)] = 3
+
+	# Bosques y montes según la comarca (montes hacia los bordes).
+	for x in range(MAPA_ANCHO):
+		for y in range(MAPA_ALTO):
+			if terreno[x][y] != 0:
+				continue
+			var borde := float(min(y, MAPA_ALTO - 1 - y)) / (MAPA_ALTO / 2.0)
+			var r := randf()
+			if borde < 0.35 and r < float(c["monte"]):
+				terreno[x][y] = 6  # monte
+			elif r < float(c["bosque"]):
+				terreno[x][y] = 5  # bosque
+
+	# Emplazamiento del monasterio: junto al río, cerca del centro.
+	var cx := MAPA_ANCHO / 2
+	for dy in range(0, MAPA_ALTO):
+		var yy := clampi(MAPA_ALTO / 2 - dy, 1, MAPA_ALTO - 2)
+		if terreno[cx][yy] == 0:
+			sitio_mosteiro = Vector2i(cx, yy)
+			break
+	# Explanada de piedra bajo el monasterio.
+	for x in range(sitio_mosteiro.x - 2, sitio_mosteiro.x + 3):
+		for y in range(sitio_mosteiro.y - 2, sitio_mosteiro.y + 3):
+			if x >= 0 and x < MAPA_ANCHO and y >= 0 and y < MAPA_ALTO and terreno[x][y] == 0:
+				terreno[x][y] = 2
+
+func _xerar_aldeas(c: Dictionary) -> void:
+	aldeas = []
+	var obxectivo := int(c["aldeas"])
+	var intentos := 0
+	while aldeas.size() < obxectivo and intentos < 400:
+		intentos += 1
+		var x := 2 + randi() % (MAPA_ANCHO - 4)
+		var y := 2 + randi() % (MAPA_ALTO - 4)
+		if terreno[x][y] != 0:
+			continue
+		var pos := Vector2i(x, y)
+		if pos.distance_to(sitio_mosteiro) < 5.0:
+			continue
+		var demasiado_cerca := false
+		for a in aldeas:
+			if pos.distance_to(Vector2i(a["x"], a["y"])) < 5.0:
+				demasiado_cerca = true
+				break
+		if demasiado_cerca:
+			continue
+		aldeas.append(_nova_aldea(x, y, c))
+		# Marca un par de campos de labor junto a la aldea.
+		for d: Vector2i in [Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0)]:
+			var fx: int = x + d.x
+			var fy: int = y + d.y
+			if fx >= 0 and fx < MAPA_ANCHO and fy >= 0 and fy < MAPA_ALTO and terreno[fx][fy] == 0:
+				terreno[fx][fy] = 4
+
+func _nova_aldea(x: int, y: int, c: Dictionary) -> Dictionary:
+	var casas: Array = []
+	var n := 3 + randi() % 3
+	for i in range(n):
+		casas.append(Data.CASAS_FORERAS[randi() % Data.CASAS_FORERAS.size()])
+	return {
+		"nome": Data.NOMES_ALDEA[randi() % Data.NOMES_ALDEA.size()],
+		"x": x, "y": y,
+		"poboacion": 3 + randi() % 6,
+		"zona": c["zona"],
+		"casas": casas,
+		"afinidade": 55,
+	}
+
+func _tipo_por_zona(zona: String) -> String:
+	match zona:
+		"cereal": return "cereal"
+		"vinha": return "vinha"
+		"souto": return "souto"
+		_:
+			var t := ["cereal", "vinha", "souto"]
+			return t[randi() % t.size()]
+
+## Crea una leira nueva vinculada a una aldea al azar (según su zona).
+func _nova_leira_en_aldea() -> Dictionary:
+	var l := _nova_leira("cereal", 1 + randi() % 3)
+	if aldeas.size() > 0:
+		var a: Dictionary = aldeas[randi() % aldeas.size()]
+		l["aldea"] = a["nome"]
+		l["tipo"] = _tipo_por_zona(a["zona"])
+		l["nome"] = "%s de %s" % [
+			Data.TOPONIMOS_LEIRA[randi() % Data.TOPONIMOS_LEIRA.size()], a["nome"]]
+	return l
+
+func _nome_familia_de_aldea(nome_aldea: String) -> String:
+	for a in aldeas:
+		if a["nome"] == nome_aldea and a["casas"].size() > 0:
+			return "os de " + a["casas"][randi() % a["casas"].size()]
+	return _nome_familia()
 
 # --- Consultas --------------------------------------------------------------
 
@@ -293,6 +467,7 @@ func _nova_leira(tipo: String, calidade: int) -> Dictionary:
 		"fraccion": 0.0,
 		"voces": 0,                  # voces restantes del contrato
 		"morosidade": 0.0,           # renta atrasada acumulada
+		"aldea": "",                 # aldea a la que pertenece la heredad
 		"pleito": false,             # ¿litigio en curso ante la Audiencia?
 		"pleito_causa": "",          # impago | recuperacion
 		"pleito_anos": 0,            # años que lleva el pleito
@@ -696,9 +871,7 @@ func aplicar_evento(id: String) -> void:
 				poblacion += 1
 		"donacion_leira":
 			# Nueva heredad al patrimonio, a cambio de un aniversario perpetuo.
-			var tipos := ["cereal", "vinha", "souto"]
-			var nova := _nova_leira(tipos[randi() % tipos.size()], 1 + randi() % 3)
-			leiras.append(nova)
+			leiras.append(_nova_leira_en_aldea())
 			aniversarios += 1
 			prestigio += 3
 		"manda_testamentaria":

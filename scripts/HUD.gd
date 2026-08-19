@@ -40,10 +40,13 @@ func _ready() -> void:
 	GameState.evento.connect(_on_evento)
 	GameState.fin_de_partida.connect(_on_fin)
 	GameState.edificio_pulsado.connect(_on_edificio)
+	GameState.aldea_pulsada.connect(_on_aldea)
+	%BtnAldeaCerrar.pressed.connect(func() -> void: %AldeaPopup.hide())
 
 	%Popup.hide()
 	%Evento.hide()
 	%FinJuego.hide()
+	%AldeaPopup.hide()
 	_refrescar()
 
 func _on_auto(activado: bool) -> void:
@@ -82,6 +85,19 @@ func _refrescar() -> void:
 
 	if %Popup.visible and _sel_edificio != "":
 		_pintar_popup(_sel_edificio)
+
+func _on_aldea(indice: int) -> void:
+	if indice < 0 or indice >= GameState.aldeas.size():
+		return
+	var a: Dictionary = GameState.aldeas[indice]
+	var zona_nome: String = {
+		"cereal": "cereal (centeno y trigo)", "vinha": "viñedo",
+		"souto": "souto de castaños", "mixta": "cultivos variados",
+	}.get(a["zona"], a["zona"])
+	%AldeaTitulo.text = "Aldea de %s" % a["nome"]
+	%AldeaInfo.text = "Población: %d familias\nContorno de %s\nCasas: %s\n\nDe estas casas salen los foreros de sus heredades, y de sus vecinos las donaciones al monasterio." % [
+		int(a["poboacion"]), zona_nome, ", ".join(a["casas"])]
+	%AldeaPopup.show()
 
 func _on_edificio(edificio_id: String) -> void:
 	_sel_edificio = edificio_id

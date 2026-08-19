@@ -161,6 +161,72 @@ const EVENTOS := [
 	},
 ]
 
+# --- Fundación: comarcas y familias -----------------------------------------
+# Parámetros de generación del mapa y rasgos de partida por comarca.
+# Ids de tile: 0 hierba, 1 camino, 2 piedra, 3 agua, 4 campo, 5 bosque, 6 monte.
+const COMARCAS := [
+	{
+		"id": "deza", "nombre": "Val do Deza",
+		"desc": "Tierras llanas y fértiles junto al río, de buen cereal y muchas aldeas. Próspera, pero expuesta a las incursiones.",
+		"fertilidad": 0.8, "bosque": 0.15, "monte": 0.05, "aldeas": 5,
+		"zona": "cereal", "riesgo": 1.2,
+		"bonus": {"comida": 20.0},
+	},
+	{
+		"id": "trasdeza", "nombre": "Trasdeza",
+		"desc": "Comarca de montaña, con soutos de castaños y aldeas dispersas. Aislada y segura, pero de tierra pobre.",
+		"fertilidad": 0.4, "bosque": 0.4, "monte": 0.3, "aldeas": 3,
+		"zona": "souto", "riesgo": 0.6,
+		"bonus": {"piedra": 20.0},
+	},
+	{
+		"id": "ulla", "nombre": "Ribeira do Ulla",
+		"desc": "Laderas de viñedo junto al gran río, en la ruta de los peregrinos. Buen comercio y donaciones.",
+		"fertilidad": 0.6, "bosque": 0.2, "monte": 0.1, "aldeas": 4,
+		"zona": "vinha", "riesgo": 1.0,
+		"bonus": {"plata": 20.0},
+	},
+	{
+		"id": "camba", "nombre": "Terra de Camba",
+		"desc": "Comarca equilibrada de montes, prados y alguna veiga. Un comienzo sin extremos.",
+		"fertilidad": 0.6, "bosque": 0.25, "monte": 0.15, "aldeas": 4,
+		"zona": "mixta", "riesgo": 0.9,
+		"bonus": {},
+	},
+]
+
+# Familias fundadoras: dote inicial y rasgo propio.
+const FAMILIAS := [
+	{
+		"id": "condal", "nombre": "Linaje condal",
+		"desc": "Una casa noble dota el cenobio con plata y una heredad ya aforada. Empiezas con más prestigio.",
+		"dote": {"plata": 60.0, "comida": 40.0, "piedra": 30.0},
+		"monjes": 5, "leiras_aforadas": 1, "leiras_directas": 1,
+		"vasallos": 4, "prestigio": 15, "fe": 10.0,
+	},
+	{
+		"id": "labradores", "nombre": "Estirpe de labradores",
+		"desc": "Familia de la tierra: llega con brazos, grano y una veiga propia en explotación directa. Más comida y vasallos.",
+		"dote": {"plata": 25.0, "comida": 80.0, "piedra": 20.0},
+		"monjes": 6, "leiras_aforadas": 0, "leiras_directas": 2,
+		"vasallos": 6, "prestigio": 4, "fe": 8.0,
+	},
+	{
+		"id": "eclesiastica", "nombre": "Estirpe eclesiástica",
+		"desc": "De raíz clerical, aporta libros y devoción. Un hermano letrado y mayor fervor, aunque menos bienes.",
+		"dote": {"plata": 35.0, "comida": 35.0, "piedra": 15.0},
+		"monjes": 5, "leiras_aforadas": 1, "leiras_directas": 0,
+		"vasallos": 2, "prestigio": 8, "fe": 20.0,
+	},
+]
+
+# Topónimos para las aldeas del contorno.
+const NOMES_ALDEA := [
+	"Vilameán", "Reboredo", "Fontao", "Castrelo", "A Bergaza", "Merza",
+	"Piloño", "Ansemil", "Carboeiro", "Gresande", "Trasfontao", "Saídres",
+	"Escuadro", "Dornelas", "Cristimil", "Toiriz", "Xestoso", "Bermés",
+]
+
 # --- Sistema foral: patrimonio de tierras -----------------------------------
 # Tipos de leira (parcela) y el recurso anual que rinden.
 const TIPOS_LEIRA := {

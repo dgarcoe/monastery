@@ -1,0 +1,89 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/Fundacion.gd" id="1"]
+
+[sub_resource type="StyleBoxFlat" id="sb"]
+bg_color = Color(0.15, 0.12, 0.09, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.5, 0.42, 0.3, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="Fundacion" type="Control"]
+layout_mode = 3
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1")
+
+[node name="Fondo" type="ColorRect" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.1, 0.09, 0.07, 1)
+
+[node name="Panel" type="Panel" parent="."]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -270.0
+offset_right = 300.0
+offset_bottom = 270.0
+theme_override_styles/panel = SubResource("sb")
+
+[node name="M" type="MarginContainer" parent="Panel"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="V" type="VBoxContainer" parent="Panel/M"]
+theme_override_constants/separation = 10
+
+[node name="Titulo" type="Label" parent="Panel/M/V"]
+text = "Fundación del monasterio"
+horizontal_alignment = 1
+
+[node name="Subtitulo" type="Label" parent="Panel/M/V"]
+autowrap_mode = 3
+horizontal_alignment = 1
+text = "Corre el año 750. Una familia decide consagrar sus tierras y fundar un cenobio bajo la regla monástica. Elige dónde y quién lo funda."
+
+[node name="Sep1" type="HSeparator" parent="Panel/M/V"]
+
+[node name="LblComarca" type="Label" parent="Panel/M/V"]
+text = "Comarca de fundación:"
+
+[node name="ComarcaOpt" type="OptionButton" parent="Panel/M/V"]
+unique_name_in_owner = true
+
+[node name="ComarcaDesc" type="Label" parent="Panel/M/V"]
+unique_name_in_owner = true
+autowrap_mode = 3
+custom_minimum_size = Vector2(0, 56)
+text = "..."
+
+[node name="LblFamilia" type="Label" parent="Panel/M/V"]
+text = "Familia fundadora:"
+
+[node name="FamiliaOpt" type="OptionButton" parent="Panel/M/V"]
+unique_name_in_owner = true
+
+[node name="FamiliaDesc" type="Label" parent="Panel/M/V"]
+unique_name_in_owner = true
+autowrap_mode = 3
+custom_minimum_size = Vector2(0, 56)
+text = "..."
+
+[node name="Sep2" type="HSeparator" parent="Panel/M/V"]
+
+[node name="BtnFundar" type="Button" parent="Panel/M/V"]
+unique_name_in_owner = true
+text = "Fundar el monasterio"

@@ -1,28 +1,49 @@
 # Monasterium — Gestión de un monasterio medieval gallego
 
-Juego de gestión hecho en **Godot 4.3**, ambientado en los monasterios
-benedictinos de la Galicia medieval, inspirado en **San Pedro de Ansemil** y
-**Santa María de Carboeiro** (comarca del Deza). Gestionas una comunidad de
-monjes bajo la regla *ora et labora*: reza, cultiva, copia códices en el
-scriptorium, elabora vino, acoge peregrinos y levanta el monasterio en piedra,
-sobreviviendo a hambrunas, pestes, sequías e incursiones normandas.
+Juego de gestión hecho en **Godot 4.3**, ambientado en los monasterios de la
+Galicia altomedieval, inspirado en **San Pedro de Ansemil** y **Santa María de
+Carboeiro** (comarca del Deza). En el **año 750**, una familia funda un cenobio
+sobre sus tierras (a la manera de los *monasterios familiares* del monacato
+galaico) y tú lo llevas adelante bajo la regla *ora et labora*: reza, cultiva,
+copia códices, elabora vino, acoge peregrinos, levanta el monasterio en piedra
+y administra su señorío, sobreviviendo a hambrunas, pestes e incursiones
+normandas.
 
-> Vista **top-down 2D** con TileMap. Todos los gráficos son **placeholders**
-> pensados para que sustituyas por tus propios sprites (ver más abajo).
+> Vista **top-down 2D** con TileMap y **mapa generado proceduralmente** (cada
+> partida es distinta). Todos los gráficos son **placeholders** pensados para
+> que sustituyas por tus propios sprites (ver más abajo).
 
 ## Cómo abrir y jugar
 
 1. Abre el proyecto con Godot 4.3 (o 4.x): *Import* → selecciona `project.godot`.
-2. Pulsa **F5** (Play) para ejecutar la escena principal `scenes/Main.tscn`.
+2. Pulsa **F5** (Play). Arranca la **pantalla de fundación**
+   (`scenes/Fundacion.tscn`).
+
+### Fundación
+
+Antes de empezar eliges:
+
+- **Comarca** (Val do Deza, Trasdeza, Ribeira do Ulla, Terra de Camba): define
+  cómo se genera el mapa (fertilidad, bosque, monte, nº de aldeas), el cultivo
+  dominante y una bonificación inicial.
+- **Familia fundadora** (linaje condal, estirpe de labradores o eclesiástica):
+  fija la dote de partida (recursos, monjes, tierras, vasallos, prestigio).
+
+Al pulsar **Fundar el monasterio** se genera un mapa nuevo y comienza la partida.
 
 ### Controles y bucle de juego
 
+- **Navegación del mapa**: arrastra con el **botón derecho** (o central) para
+  desplazarte; **rueda del ratón** para acercar/alejar.
 - **Siguiente mes ▶** (abajo): avanza la simulación un mes. **Auto**: avanza solo.
 - **Panel de oficios** (izquierda): reparte a los monjes con `-` / `+` entre
   oración, huerto, cantería, scriptorium, viñedo y hospedería. Los oficios con
   🔒 necesitan su edificio construido.
-- **Edificios del mapa**: haz **clic** en cualquier solar para ver su ficha y
-  **construir / ampliar** (cuesta plata 🪙 y piedra 🪨).
+- **Edificios del monasterio**: haz **clic** en cualquier solar para ver su
+  ficha y **construir / ampliar** (cuesta plata 🪙 y piedra 🪨).
+- **Aldeas del contorno**: haz **clic** en una aldea para ver su ficha
+  (población, zona, casas). De sus casas salen los foreros y de sus vecinos las
+  donaciones de tierras al monasterio.
 - **Vender manuscritos / vino** (abajo): conviértelos en plata.
 - La **crónica** (derecha) registra construcciones y eventos.
 
@@ -71,24 +92,36 @@ Modela el funcionamiento real de la economía monástica gallega bajomedieval:
 ```
 project.godot                 Configuración y autoloads (Data, GameState)
 scenes/
-  Main.tscn                   Escena principal: mapa, edificios y monjes
+  Fundacion.tscn              Escena INICIAL: elección de comarca y familia
+  Main.tscn                   Escena de juego: mapa, edificios, aldeas y monjes
   HUD.tscn                    Interfaz (recursos, oficios, mercado, crónica)
   Building.tscn               Edificio/solar con clic
-  Monk.tscn                   Monje que deambula
+  Aldea.tscn                  Aldea del contorno con aldeanos
+  Monk.tscn / Villager.tscn   Monje y aldeano (deambulan)
   SenorioPanel.tscn           Panel del señorío (patrimonio y foros)
   LeiraRow.tscn               Fila de una leira dentro del señorío
 scripts/
   Data.gd                     Datos: recursos, oficios, edificios, eventos,
-                              tipos de leira, fracciones forales, topónimos
-  GameState.gd                Lógica de simulación y señorío (autoload)
-  Ground.gd                   Pintado del terreno con el TileSet
+                              comarcas, familias, tipos de leira, topónimos
+  GameState.gd                Lógica de simulación, fundación, mapa y señorío
+  Fundacion.gd                Pantalla de fundación
+  Ground.gd                   Pinta el terreno generado con el TileSet
+  CameraController.gd         Cámara con desplazamiento y zoom
+  Wanderer.gd                 Deambular de monjes y aldeanos
+  Aldea.gd                    Aldea (aldeanos, ficha, foreros)
   Senorio.gd / LeiraRow.gd    Interfaz del sistema foral
-  Building.gd / Monk.gd / Main.gd / HUD.gd
+  Building.gd / Main.gd / HUD.gd
 resources/
-  monastery_tileset.tres      TileSet (hierba, camino, piedra, agua, campo)
+  monastery_tileset.tres      TileSet (hierba, camino, piedra, agua, campo,
+                              bosque, monte)
 assets/
   tiles/  buildings/  characters/  ui/   ← aquí van tus sprites
 ```
+
+El mapa se **genera al fundar** (`GameState.fundar` → terreno + aldeas) según
+la comarca elegida, de modo que cada partida es distinta. `Ground.gd` solo
+pinta el terreno ya generado y `Main.gd` coloca los edificios alrededor del
+emplazamiento y las aldeas sobre el mapa.
 
 La **simulación** (`GameState.gd`) está separada de la **presentación**: los
 scripts de escena solo leen el estado y reaccionan a sus señales, sin dibujar
@@ -107,7 +140,10 @@ no tendrás que tocar ninguna escena.
 | `tiles/stone_floor.png` | 64×64 | Suelo de piedra (claustro) |
 | `tiles/water.png` | 64×64 | Río |
 | `tiles/field.png` | 64×64 | Campo de labor |
+| `tiles/forest.png` | 64×64 | Bosque |
+| `tiles/mountain.png` | 64×64 | Monte |
 | `buildings/plot.png` | 128×128 | Solar vacío (sin construir) |
+| `buildings/aldea.png` | 96×96 | Aldea (poblado) |
 | `buildings/church.png` | 128×128 | *(reservado)* |
 | `buildings/iglesia.png` | 128×128 | Iglesia |
 | `buildings/scriptorium.png` | 128×128 | Scriptorium |
@@ -117,6 +153,7 @@ no tendrás que tocar ninguna escena.
 | `buildings/hospederia.png` | 128×128 | Hospedería |
 | `buildings/enfermeria.png` | 128×128 | Enfermería |
 | `characters/monk.png` | 32×32 | Monje |
+| `characters/villager.png` | 28×28 | Aldeano |
 | `ui/*.png` | 48×48 | Iconos de recursos del HUD |
 
 Notas:
@@ -124,8 +161,8 @@ Notas:
   (`texture_region_size` y `tile_size`) y en `scripts/Ground.gd`.
 - El nombre del sprite de cada edificio coincide con su `id` en `Data.gd`
   (`Building.gd` carga `res://assets/buildings/<id>.png`).
-- Para animar al monje, añade un `AnimationPlayer`/`AnimatedSprite2D` en
-  `Monk.tscn` sin cambiar `Monk.gd`.
+- Para animar al monje o al aldeano, añade un `AnimationPlayer`/
+  `AnimatedSprite2D` en `Monk.tscn` / `Villager.tscn` sin cambiar `Wanderer.gd`.
 - Puedes **pintar el mapa a mano** en el editor con tus tiles y borrar
   `Ground.gd` si no quieres el terreno generado por defecto.
 

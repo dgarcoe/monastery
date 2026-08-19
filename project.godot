@@ -8,7 +8,7 @@ config_version=5
 
 config/name="Monasterium — Gestión de un monasterio medieval gallego"
 config/description="Simulador de gestión inspirado en los monasterios románicos gallegos de San Pedro de Ansemil y Santa María de Carboeiro."
-run/main_scene="res://scenes/Main.tscn"
+run/main_scene="res://scenes/Fundacion.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 
 [autoload]
