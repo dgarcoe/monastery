@@ -1,0 +1,478 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/HUD.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/ui/comida.png" id="2"]
+[ext_resource type="Texture2D" path="res://assets/ui/plata.png" id="3"]
+[ext_resource type="Texture2D" path="res://assets/ui/piedra.png" id="4"]
+[ext_resource type="Texture2D" path="res://assets/ui/fe.png" id="5"]
+[ext_resource type="Texture2D" path="res://assets/ui/manuscritos.png" id="6"]
+[ext_resource type="Texture2D" path="res://assets/ui/vino.png" id="7"]
+[ext_resource type="Texture2D" path="res://assets/ui/poblacion.png" id="8"]
+[ext_resource type="Texture2D" path="res://assets/ui/prestigio.png" id="9"]
+
+[node name="HUD" type="CanvasLayer"]
+script = ExtResource("1")
+
+[node name="AutoTimer" type="Timer" parent="."]
+unique_name_in_owner = true
+wait_time = 2.0
+
+[node name="UI" type="Control" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="TopBar" type="PanelContainer" parent="UI"]
+anchor_right = 1.0
+offset_left = 8.0
+offset_top = 4.0
+offset_right = -8.0
+offset_bottom = 56.0
+
+[node name="M" type="MarginContainer" parent="UI/TopBar"]
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="Row" type="HBoxContainer" parent="UI/TopBar/M"]
+theme_override_constants/separation = 6
+
+[node name="ic_comida" type="TextureRect" parent="UI/TopBar/M/Row"]
+custom_minimum_size = Vector2(26, 26)
+texture = ExtResource("2")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="val_comida" type="Label" parent="UI/TopBar/M/Row"]
+unique_name_in_owner = true
+text = "0"
+
+[node name="ic_plata" type="TextureRect" parent="UI/TopBar/M/Row"]
+custom_minimum_size = Vector2(26, 26)
+texture = ExtResource("3")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="val_plata" type="Label" parent="UI/TopBar/M/Row"]
+unique_name_in_owner = true
+text = "0"
+
+[node name="ic_piedra" type="TextureRect" parent="UI/TopBar/M/Row"]
+custom_minimum_size = Vector2(26, 26)
+texture = ExtResource("4")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="val_piedra" type="Label" parent="UI/TopBar/M/Row"]
+unique_name_in_owner = true
+text = "0"
+
+[node name="ic_fe" type="TextureRect" parent="UI/TopBar/M/Row"]
+custom_minimum_size = Vector2(26, 26)
+texture = ExtResource("5")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="val_fe" type="Label" parent="UI/TopBar/M/Row"]
+unique_name_in_owner = true
+text = "0"
+
+[node name="ic_manuscritos" type="TextureRect" parent="UI/TopBar/M/Row"]
+custom_minimum_size = Vector2(26, 26)
+texture = ExtResource("6")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="val_manuscritos" type="Label" parent="UI/TopBar/M/Row"]
+unique_name_in_owner = true
+text = "0"
+
+[node name="ic_vino" type="TextureRect" parent="UI/TopBar/M/Row"]
+custom_minimum_size = Vector2(26, 26)
+texture = ExtResource("7")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="val_vino" type="Label" parent="UI/TopBar/M/Row"]
+unique_name_in_owner = true
+text = "0"
+
+[node name="ic_poblacion" type="TextureRect" parent="UI/TopBar/M/Row"]
+custom_minimum_size = Vector2(26, 26)
+texture = ExtResource("8")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="val_poblacion" type="Label" parent="UI/TopBar/M/Row"]
+unique_name_in_owner = true
+text = "5/6"
+
+[node name="ic_prestigio" type="TextureRect" parent="UI/TopBar/M/Row"]
+custom_minimum_size = Vector2(26, 26)
+texture = ExtResource("9")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="val_prestigio" type="Label" parent="UI/TopBar/M/Row"]
+unique_name_in_owner = true
+text = "0"
+
+[node name="Spacer" type="Control" parent="UI/TopBar/M/Row"]
+size_flags_horizontal = 3
+
+[node name="LblFecha" type="Label" parent="UI/TopBar/M/Row"]
+unique_name_in_owner = true
+text = "Enero de 1085"
+
+[node name="Sep" type="VSeparator" parent="UI/TopBar/M/Row"]
+
+[node name="LblEstacion" type="Label" parent="UI/TopBar/M/Row"]
+unique_name_in_owner = true
+text = "Invierno"
+
+[node name="OficiosPanel" type="PanelContainer" parent="UI"]
+offset_left = 8.0
+offset_top = 64.0
+offset_right = 350.0
+offset_bottom = 470.0
+
+[node name="M" type="MarginContainer" parent="UI/OficiosPanel"]
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="V" type="VBoxContainer" parent="UI/OficiosPanel/M"]
+theme_override_constants/separation = 6
+
+[node name="Titulo" type="Label" parent="UI/OficiosPanel/M/V"]
+text = "Oficios de la comunidad"
+
+[node name="LblLibres" type="Label" parent="UI/OficiosPanel/M/V"]
+unique_name_in_owner = true
+text = "Monjes libres: 0"
+
+[node name="row_oracion" type="HBoxContainer" parent="UI/OficiosPanel/M/V"]
+theme_override_constants/separation = 4
+
+[node name="lbl" type="Label" parent="UI/OficiosPanel/M/V/row_oracion"]
+custom_minimum_size = Vector2(160, 0)
+text = "Oración y liturgia"
+
+[node name="menos_oracion" type="Button" parent="UI/OficiosPanel/M/V/row_oracion"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(34, 0)
+text = "-"
+
+[node name="cnt_oracion" type="Label" parent="UI/OficiosPanel/M/V/row_oracion"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(30, 0)
+horizontal_alignment = 1
+text = "0"
+
+[node name="mas_oracion" type="Button" parent="UI/OficiosPanel/M/V/row_oracion"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(34, 0)
+text = "+"
+
+[node name="row_huerto" type="HBoxContainer" parent="UI/OficiosPanel/M/V"]
+theme_override_constants/separation = 4
+
+[node name="lbl" type="Label" parent="UI/OficiosPanel/M/V/row_huerto"]
+custom_minimum_size = Vector2(160, 0)
+text = "Huerto y campo"
+
+[node name="menos_huerto" type="Button" parent="UI/OficiosPanel/M/V/row_huerto"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(34, 0)
+text = "-"
+
+[node name="cnt_huerto" type="Label" parent="UI/OficiosPanel/M/V/row_huerto"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(30, 0)
+horizontal_alignment = 1
+text = "0"
+
+[node name="mas_huerto" type="Button" parent="UI/OficiosPanel/M/V/row_huerto"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(34, 0)
+text = "+"
+
+[node name="row_canteria" type="HBoxContainer" parent="UI/OficiosPanel/M/V"]
+theme_override_constants/separation = 4
+
+[node name="lbl" type="Label" parent="UI/OficiosPanel/M/V/row_canteria"]
+custom_minimum_size = Vector2(160, 0)
+text = "Cantería"
+
+[node name="menos_canteria" type="Button" parent="UI/OficiosPanel/M/V/row_canteria"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(34, 0)
+text = "-"
+
+[node name="cnt_canteria" type="Label" parent="UI/OficiosPanel/M/V/row_canteria"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(30, 0)
+horizontal_alignment = 1
+text = "0"
+
+[node name="mas_canteria" type="Button" parent="UI/OficiosPanel/M/V/row_canteria"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(34, 0)
+text = "+"
+
+[node name="row_scriptorium" type="HBoxContainer" parent="UI/OficiosPanel/M/V"]
+theme_override_constants/separation = 4
+
+[node name="lbl" type="Label" parent="UI/OficiosPanel/M/V/row_scriptorium"]
+custom_minimum_size = Vector2(160, 0)
+text = "Scriptorium"
+
+[node name="menos_scriptorium" type="Button" parent="UI/OficiosPanel/M/V/row_scriptorium"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(34, 0)
+text = "-"
+
+[node name="cnt_scriptorium" type="Label" parent="UI/OficiosPanel/M/V/row_scriptorium"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(30, 0)
+horizontal_alignment = 1
+text = "0"
+
+[node name="mas_scriptorium" type="Button" parent="UI/OficiosPanel/M/V/row_scriptorium"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(34, 0)
+text = "+"
+
+[node name="row_vinedo" type="HBoxContainer" parent="UI/OficiosPanel/M/V"]
+theme_override_constants/separation = 4
+
+[node name="lbl" type="Label" parent="UI/OficiosPanel/M/V/row_vinedo"]
+custom_minimum_size = Vector2(160, 0)
+text = "Viñedo y bodega"
+
+[node name="menos_vinedo" type="Button" parent="UI/OficiosPanel/M/V/row_vinedo"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(34, 0)
+text = "-"
+
+[node name="cnt_vinedo" type="Label" parent="UI/OficiosPanel/M/V/row_vinedo"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(30, 0)
+horizontal_alignment = 1
+text = "0"
+
+[node name="mas_vinedo" type="Button" parent="UI/OficiosPanel/M/V/row_vinedo"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(34, 0)
+text = "+"
+
+[node name="row_hospederia" type="HBoxContainer" parent="UI/OficiosPanel/M/V"]
+theme_override_constants/separation = 4
+
+[node name="lbl" type="Label" parent="UI/OficiosPanel/M/V/row_hospederia"]
+custom_minimum_size = Vector2(160, 0)
+text = "Hospedería"
+
+[node name="menos_hospederia" type="Button" parent="UI/OficiosPanel/M/V/row_hospederia"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(34, 0)
+text = "-"
+
+[node name="cnt_hospederia" type="Label" parent="UI/OficiosPanel/M/V/row_hospederia"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(30, 0)
+horizontal_alignment = 1
+text = "0"
+
+[node name="mas_hospederia" type="Button" parent="UI/OficiosPanel/M/V/row_hospederia"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(34, 0)
+text = "+"
+
+[node name="Ayuda" type="Label" parent="UI/OficiosPanel/M/V"]
+autowrap_mode = 3
+text = "Haz clic en un edificio del mapa para construirlo o ampliarlo."
+
+[node name="CronicaPanel" type="PanelContainer" parent="UI"]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -368.0
+offset_top = 64.0
+offset_right = -8.0
+offset_bottom = 470.0
+
+[node name="M" type="MarginContainer" parent="UI/CronicaPanel"]
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="V" type="VBoxContainer" parent="UI/CronicaPanel/M"]
+
+[node name="Titulo" type="Label" parent="UI/CronicaPanel/M/V"]
+text = "Crónica del monasterio"
+
+[node name="Cronica" type="RichTextLabel" parent="UI/CronicaPanel/M/V"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(340, 300)
+size_flags_vertical = 3
+bbcode_enabled = true
+scroll_following = true
+text = "Bienvenido. Que la regla de san Benito guíe esta casa.
+"
+
+[node name="BottomBar" type="PanelContainer" parent="UI"]
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = -56.0
+offset_right = -8.0
+offset_bottom = -8.0
+
+[node name="M" type="MarginContainer" parent="UI/BottomBar"]
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="Row" type="HBoxContainer" parent="UI/BottomBar/M"]
+theme_override_constants/separation = 8
+
+[node name="BtnMes" type="Button" parent="UI/BottomBar/M/Row"]
+unique_name_in_owner = true
+text = "Siguiente mes  ▶"
+
+[node name="ChkAuto" type="CheckButton" parent="UI/BottomBar/M/Row"]
+unique_name_in_owner = true
+text = "Auto"
+
+[node name="Spacer" type="Control" parent="UI/BottomBar/M/Row"]
+size_flags_horizontal = 3
+
+[node name="BtnVenderManu" type="Button" parent="UI/BottomBar/M/Row"]
+unique_name_in_owner = true
+text = "Vender manuscritos"
+
+[node name="BtnVenderVino" type="Button" parent="UI/BottomBar/M/Row"]
+unique_name_in_owner = true
+text = "Vender vino"
+
+[node name="Popup" type="Panel" parent="UI"]
+unique_name_in_owner = true
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -230.0
+offset_top = -130.0
+offset_right = 230.0
+offset_bottom = 130.0
+
+[node name="M" type="MarginContainer" parent="UI/Popup"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="V" type="VBoxContainer" parent="UI/Popup/M"]
+theme_override_constants/separation = 10
+
+[node name="PopupTitulo" type="Label" parent="UI/Popup/M/V"]
+unique_name_in_owner = true
+text = "Edificio"
+
+[node name="PopupDesc" type="Label" parent="UI/Popup/M/V"]
+unique_name_in_owner = true
+autowrap_mode = 3
+text = "Descripción"
+
+[node name="PopupCoste" type="Label" parent="UI/Popup/M/V"]
+unique_name_in_owner = true
+text = "Coste:"
+
+[node name="Botones" type="HBoxContainer" parent="UI/Popup/M/V"]
+theme_override_constants/separation = 8
+
+[node name="BtnConstruir" type="Button" parent="UI/Popup/M/V/Botones"]
+unique_name_in_owner = true
+text = "Construir"
+
+[node name="BtnCerrar" type="Button" parent="UI/Popup/M/V/Botones"]
+unique_name_in_owner = true
+text = "Cerrar"
+
+[node name="Evento" type="Panel" parent="UI"]
+unique_name_in_owner = true
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -140.0
+offset_right = 260.0
+offset_bottom = 140.0
+
+[node name="M" type="MarginContainer" parent="UI/Evento"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="V" type="VBoxContainer" parent="UI/Evento/M"]
+theme_override_constants/separation = 12
+
+[node name="EvtTitulo" type="Label" parent="UI/Evento/M/V"]
+unique_name_in_owner = true
+text = "Evento"
+
+[node name="EvtTexto" type="Label" parent="UI/Evento/M/V"]
+unique_name_in_owner = true
+autowrap_mode = 3
+size_flags_vertical = 3
+text = "..."
+
+[node name="BtnEvtOk" type="Button" parent="UI/Evento/M/V"]
+unique_name_in_owner = true
+text = "Continuar"
+
+[node name="FinJuego" type="Panel" parent="UI"]
+unique_name_in_owner = true
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -130.0
+offset_right = 260.0
+offset_bottom = 130.0
+
+[node name="M" type="MarginContainer" parent="UI/FinJuego"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="V" type="VBoxContainer" parent="UI/FinJuego/M"]
+theme_override_constants/separation = 12
+
+[node name="Titulo" type="Label" parent="UI/FinJuego/M/V"]
+text = "Fin de la partida"
+
+[node name="FinTexto" type="Label" parent="UI/FinJuego/M/V"]
+unique_name_in_owner = true
+autowrap_mode = 3
+size_flags_vertical = 3
+text = "..."
+
+[node name="BtnReiniciar" type="Button" parent="UI/FinJuego/M/V"]
+unique_name_in_owner = true
+text = "Nueva partida"

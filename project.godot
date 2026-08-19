@@ -1,0 +1,30 @@
+; Engine configuration file.
+; Proyecto Godot 4.x — Simulador de gestión de un monasterio medieval gallego.
+; Este archivo puede editarse manualmente; Godot lo regenerará al abrir el editor.
+
+config_version=5
+
+[application]
+
+config/name="Monasterium — Gestión de un monasterio medieval gallego"
+config/description="Simulador de gestión inspirado en los monasterios románicos gallegos de San Pedro de Ansemil y Santa María de Carboeiro."
+run/main_scene="res://scenes/Main.tscn"
+config/features=PackedStringArray("4.3", "GL Compatibility")
+
+[autoload]
+
+Data="*res://scripts/Data.gd"
+GameState="*res://scripts/GameState.gd"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+environment/defaults/default_clear_color=Color(0.16, 0.13, 0.1, 1)

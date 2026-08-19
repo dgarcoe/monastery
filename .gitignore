@@ -1,0 +1,8 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+/ios/
+
+# Exports y binarios
+*.tmp
+export_presets.cfg

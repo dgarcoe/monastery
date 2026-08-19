@@ -1,0 +1,131 @@
+extends CanvasLayer
+## Interfaz de usuario: barra de recursos, asignación de oficios, construcción,
+## mercado, crónica de eventos y fin de partida.
+##
+## No genera gráficos: solo actualiza el texto de nodos ya colocados en
+## HUD.tscn y usa los iconos de assets/ui/. Los botones invocan a GameState.
+
+var _sel_edificio: String = ""
+var _vals: Dictionary = {}
+var _cnt: Dictionary = {}
+
+func _ready() -> void:
+	# Referencias a las etiquetas de valor de cada recurso.
+	_vals = {
+		"comida": %val_comida, "plata": %val_plata, "piedra": %val_piedra,
+		"fe": %val_fe, "manuscritos": %val_manuscritos, "vino": %val_vino,
+	}
+	# Referencias a los contadores de cada oficio y conexión de botones.
+	for o in Data.OFICIOS:
+		var id: String = o["id"]
+		_cnt[id] = get_node("%cnt_" + id)
+		(get_node("%mas_" + id) as Button).pressed.connect(func() -> void: GameState.asignar(id, 1))
+		(get_node("%menos_" + id) as Button).pressed.connect(func() -> void: GameState.asignar(id, -1))
+
+	# Botones generales.
+	%BtnMes.pressed.connect(func() -> void: GameState.avanzar_mes())
+	%ChkAuto.toggled.connect(_on_auto)
+	%BtnVenderManu.pressed.connect(func() -> void: GameState.vender("manuscritos", GameState.recursos["manuscritos"]))
+	%BtnVenderVino.pressed.connect(func() -> void: GameState.vender("vino", GameState.recursos["vino"]))
+	%BtnConstruir.pressed.connect(_on_construir)
+	%BtnCerrar.pressed.connect(func() -> void: %Popup.hide())
+	%BtnEvtOk.pressed.connect(func() -> void: %Evento.hide())
+	%BtnReiniciar.pressed.connect(_on_reiniciar)
+	%AutoTimer.timeout.connect(func() -> void: GameState.avanzar_mes())
+
+	# Señales del modelo.
+	GameState.estado_cambiado.connect(_refrescar)
+	GameState.mensaje.connect(_on_mensaje)
+	GameState.evento.connect(_on_evento)
+	GameState.fin_de_partida.connect(_on_fin)
+	GameState.edificio_pulsado.connect(_on_edificio)
+
+	%Popup.hide()
+	%Evento.hide()
+	%FinJuego.hide()
+	_refrescar()
+
+func _on_auto(activado: bool) -> void:
+	if activado:
+		%AutoTimer.start()
+	else:
+		%AutoTimer.stop()
+
+func _num(valor: float) -> String:
+	return str(int(round(valor)))
+
+func _refrescar() -> void:
+	for id in _vals.keys():
+		_vals[id].text = _num(GameState.recursos[id])
+	%val_poblacion.text = "%d/%d" % [GameState.poblacion, GameState.capacidad_poblacion()]
+	%val_prestigio.text = str(GameState.prestigio)
+	%LblFecha.text = "%s de %d" % [GameState.MESES[GameState.mes - 1], GameState.anio]
+	%LblEstacion.text = GameState.estacion()
+	%LblLibres.text = "Monjes libres: %d" % GameState.monjes_libres()
+
+	# Oficios.
+	for o in Data.OFICIOS:
+		var id: String = o["id"]
+		if GameState.oficio_desbloqueado(o):
+			_cnt[id].text = str(int(GameState.asignacion[id]))
+		else:
+			_cnt[id].text = "🔒"
+		var libre := GameState.monjes_libres() > 0 and GameState.oficio_desbloqueado(o)
+		(get_node("%mas_" + id) as Button).disabled = not libre
+		(get_node("%menos_" + id) as Button).disabled = int(GameState.asignacion[id]) <= 0
+
+	%BtnVenderManu.disabled = GameState.recursos["manuscritos"] < 1.0
+	%BtnVenderVino.disabled = GameState.recursos["vino"] < 1.0
+	%BtnMes.disabled = GameState.terminado
+
+	if %Popup.visible and _sel_edificio != "":
+		_pintar_popup(_sel_edificio)
+
+func _on_edificio(edificio_id: String) -> void:
+	_sel_edificio = edificio_id
+	_pintar_popup(edificio_id)
+	%Popup.show()
+
+func _pintar_popup(edificio_id: String) -> void:
+	var d: Dictionary = {}
+	for e in Data.EDIFICIOS:
+		if e["id"] == edificio_id:
+			d = e
+	if d.is_empty():
+		return
+	var nivel := GameState.get_nivel(edificio_id)
+	%PopupTitulo.text = "%s  (nivel %d/%d)" % [d["nombre"], nivel, d["max_nivel"]]
+	%PopupDesc.text = d["desc"]
+	if GameState.nivel_maximo_alcanzado(edificio_id):
+		%PopupCoste.text = "Nivel máximo alcanzado."
+		%BtnConstruir.disabled = true
+		%BtnConstruir.text = "Completado"
+	else:
+		var c := GameState.coste_edificio(edificio_id)
+		%PopupCoste.text = "Coste: %d 🪙 plata  ·  %d 🪨 piedra" % [c["plata"], c["piedra"]]
+		%BtnConstruir.disabled = not GameState.puede_construir(edificio_id)
+		%BtnConstruir.text = "Ampliar" if nivel > 0 else "Construir"
+
+func _on_construir() -> void:
+	if _sel_edificio != "":
+		GameState.construir(_sel_edificio)
+
+func _on_mensaje(texto: String) -> void:
+	%Cronica.append_text("• %s\n" % texto)
+
+func _on_evento(titulo: String, texto: String) -> void:
+	%EvtTitulo.text = titulo
+	%EvtTexto.text = texto
+	%Evento.show()
+	%Cronica.append_text("[b]%s:[/b] %s\n" % [titulo, texto])
+
+func _on_fin(texto: String) -> void:
+	%ChkAuto.button_pressed = false
+	%AutoTimer.stop()
+	%FinTexto.text = texto
+	%FinJuego.show()
+
+func _on_reiniciar() -> void:
+	%FinJuego.hide()
+	%Cronica.clear()
+	GameState.reset()
