@@ -1,6 +1,6 @@
 # Monasterium — Gestión de un monasterio medieval gallego
 
-Juego de gestión hecho en **Godot 4.3**, ambientado en los monasterios de la
+Juego de gestión hecho en **Godot 4.7**, ambientado en los monasterios de la
 Galicia altomedieval, inspirado en **San Pedro de Ansemil** y **Santa María de
 Carboeiro** (comarca del Deza). En el **año 750**, una familia funda un cenobio
 sobre sus tierras (a la manera de los *monasterios familiares* del monacato
@@ -15,7 +15,7 @@ normandas.
 
 ## Cómo abrir y jugar
 
-1. Abre el proyecto con Godot 4.3 (o 4.x): *Import* → selecciona `project.godot`.
+1. Abre el proyecto con Godot 4.7 (o 4.4+): *Import* → selecciona `project.godot`.
 2. Pulsa **F5** (Play). Arranca la **pantalla de fundación**
    (`scenes/Fundacion.tscn`).
 
