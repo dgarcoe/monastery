@@ -293,6 +293,9 @@ func _nova_leira(tipo: String, calidade: int) -> Dictionary:
 		"fraccion": 0.0,
 		"voces": 0,                  # voces restantes del contrato
 		"morosidade": 0.0,           # renta atrasada acumulada
+		"pleito": false,             # ¿litigio en curso ante la Audiencia?
+		"pleito_causa": "",          # impago | recuperacion
+		"pleito_anos": 0,            # años que lleva el pleito
 	}
 
 func rendemento_leira(leira: Dictionary) -> float:
@@ -358,8 +361,18 @@ func poner_en_directa(indice: int) -> bool:
 	if terminado or indice < 0 or indice >= leiras.size():
 		return false
 	var l: Dictionary = leiras[indice]
+	if l.get("pleito", false):
+		return false
 	if l["estado"] == "aforada" and int(l["voces"]) > 0:
 		return false  # no se puede recuperar un foro vigente
+	# Recuperar una tierra aforada puede topar con la resistencia de la familia,
+	# que acude a la justicia alegando su dominio útil.
+	if l["estado"] == "aforada" and l["forero"] != "":
+		if randf() < 0.35 + malestar * 0.004:
+			_abrir_pleito(l, "recuperacion")
+			mensaje.emit("Los foreros de «%s» se niegan a devolver la tierra y pleitean ante la Audiencia." % l["nome"])
+			estado_cambiado.emit()
+			return true
 	l["estado"] = "directa"
 	l["forero"] = ""
 	l["fraccion"] = 0.0
@@ -373,13 +386,47 @@ func perdonar_deuda(indice: int) -> bool:
 	if terminado or indice < 0 or indice >= leiras.size():
 		return false
 	var l: Dictionary = leiras[indice]
-	if l["morosidade"] <= 0.0:
+	if l["morosidade"] <= 0.0 or l.get("pleito", false):
 		return false
 	l["morosidade"] = 0.0
 	malestar = clampf(malestar - 8.0, 0.0, 100.0)
 	mensaje.emit("El abad perdona la deuda de %s. El campesinado lo agradece." % l["forero"])
 	estado_cambiado.emit()
 	return true
+
+## Demanda a un forero moroso ante la Audiencia para cobrar la renta atrasada.
+func pleitear(indice: int) -> bool:
+	if terminado or indice < 0 or indice >= leiras.size():
+		return false
+	var l: Dictionary = leiras[indice]
+	if l.get("pleito", false) or l["estado"] != "aforada" or float(l["morosidade"]) <= 0.0:
+		return false
+	if recursos["plata"] < 5.0:
+		return false  # hacen falta procuradores y escribanos
+	recursos["plata"] -= 5.0
+	_abrir_pleito(l, "impago")
+	malestar = clampf(malestar + 4.0, 0.0, 100.0)
+	mensaje.emit("El monasterio demanda a %s por la renta impagada de «%s»." % [l["forero"], l["nome"]])
+	estado_cambiado.emit()
+	return true
+
+func _abrir_pleito(l: Dictionary, causa: String) -> void:
+	l["pleito"] = true
+	l["pleito_causa"] = causa
+	l["pleito_anos"] = 0
+
+func pleitos_en_curso() -> int:
+	var n := 0
+	for l in leiras:
+		if l.get("pleito", false):
+			n += 1
+	return n
+
+func causa_pleito_txt(causa: String) -> String:
+	match causa:
+		"impago": return "por impago de la renta"
+		"recuperacion": return "sobre el dominio de la tierra"
+		_: return ""
 
 ## Reparte limosna entre los pobres: gasta recursos para calmar el malestar.
 func dar_limosna() -> bool:
@@ -420,6 +467,8 @@ func _reckoning_foral() -> void:
 
 	for l in leiras:
 		var recurso: String = Data.TIPOS_LEIRA[l["tipo"]]["recurso"]
+		if l.get("pleito", false):
+			continue  # las tierras en litigio no rinden renta hasta la sentencia
 		match l["estado"]:
 			"aforada":
 				n_aforadas += 1
@@ -487,7 +536,75 @@ func _reckoning_foral() -> void:
 		mensaje.emit("Rentas forales de %s: %d de comida, %d de vino, %d de plata." % [
 			estacion_txt, int(renta_comida), int(renta_vino), int(renta_plata + diezmo_plata)])
 
+	_procesar_pleitos()
 	_comprobar_revuelta()
+
+# --- Pleitos forales ante la Audiencia de Galicia ---------------------------
+
+func _procesar_pleitos() -> void:
+	for l in leiras:
+		# Pleito espontáneo: una deuda enconada acaba ante la justicia.
+		if (not l.get("pleito", false) and l["estado"] == "aforada"
+				and float(l["morosidade"]) >= rendemento_leira(l) * 0.5
+				and malestar > 55.0 and randf() < 0.25):
+			_abrir_pleito(l, "impago")
+			evento.emit("Pleito foral",
+				"El foro de «%s» acaba en pleito ante la Audiencia de Galicia %s." % [
+					l["nome"], causa_pleito_txt("impago")])
+		if not l.get("pleito", false):
+			continue
+		l["pleito_anos"] = int(l["pleito_anos"]) + 1
+		recursos["plata"] = max(0.0, recursos["plata"] - 4.0)  # costas: procuradores y escribanos
+		# La probabilidad de sentencia crece con los años de litigio.
+		if randf() < 0.35 + int(l["pleito_anos"]) * 0.15:
+			_resolver_pleito(l)
+
+func _resolver_pleito(l: Dictionary) -> void:
+	var favorable := clampf(0.45 + prestigio * 0.0015 - malestar * 0.002, 0.15, 0.85)
+	var gana := randf() < favorable
+	var causa: String = l["pleito_causa"]
+	var nome: String = l["nome"]
+	# Cerrar el pleito.
+	l["pleito"] = false
+	l["pleito_causa"] = ""
+	l["pleito_anos"] = 0
+	match causa:
+		"impago":
+			if gana:
+				var cobro: float = float(l["morosidade"]) * 0.6
+				recursos["plata"] += cobro
+				l["morosidade"] = 0.0
+				malestar = clampf(malestar + 5.0, 0.0, 100.0)
+				evento.emit("Sentencia favorable",
+					"La Audiencia falla a favor del monasterio: %s paga lo debido de «%s» (%d de plata)." % [
+						l["forero"], nome, int(cobro)])
+			else:
+				l["morosidade"] = 0.0
+				prestigio = max(0, prestigio - 3)
+				malestar = clampf(malestar - 3.0, 0.0, 100.0)
+				evento.emit("Sentencia adversa",
+					"El tribunal exime a %s de la deuda de «%s». El monasterio carga con las costas." % [
+						l["forero"], nome])
+		"recuperacion":
+			if gana:
+				l["estado"] = "yerma"
+				l["forero"] = ""
+				l["fraccion"] = 0.0
+				l["voces"] = 0
+				l["morosidade"] = 0.0
+				malestar = clampf(malestar + 6.0, 0.0, 100.0)
+				evento.emit("Sentencia favorable",
+					"La Audiencia reconoce el dominio directo del monasterio: se recupera «%s»." % nome)
+			else:
+				# Los foreros conservan la tierra con renta reducida.
+				l["estado"] = "aforada"
+				l["fraccion"] = 0.125  # oitavo
+				l["voces"] = 3
+				l["morosidade"] = 0.0
+				prestigio = max(0, prestigio - 3)
+				malestar = clampf(malestar - 4.0, 0.0, 100.0)
+				evento.emit("Sentencia adversa",
+					"Los foreros ganan el pleito y conservan «%s» con renta rebajada a oitavo." % nome)
 
 ## La gran revuelta de los irmandiños si la presión señorial es insoportable.
 func _comprobar_revuelta() -> void:
@@ -503,6 +620,9 @@ func _comprobar_revuelta() -> void:
 			l["forero"] = ""
 			l["voces"] = 0
 			l["morosidade"] = 0.0
+			l["pleito"] = false
+			l["pleito_causa"] = ""
+			l["pleito_anos"] = 0
 			perdidas += 1
 	recursos["plata"] = max(0.0, recursos["plata"] - 30.0)
 	recursos["comida"] = max(0.0, recursos["comida"] - 20.0)

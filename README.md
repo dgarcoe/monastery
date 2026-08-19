@@ -56,6 +56,15 @@ Modela el funcionamiento real de la economía monástica gallega bajomedieval:
   malestar → **impagos** (morosidad), y si es extremo, la **revuelta de los
   irmandiños**, que arrasa foros y rentas. Puedes **dar limosna** o
   **perdonar deudas** para apaciguar al campesinado.
+- **Pleitos forales**: los foros litigaban durante generaciones ante la
+  **Audiencia de Galicia**. Puedes **pleitear** contra un forero moroso para
+  cobrar la deuda; y al intentar **recuperar** una tierra cuyo foro caducó, la
+  familia puede resistirse y llevarlo a juicio. Una deuda enconada con mucho
+  malestar deriva sola en pleito. Mientras dura, la tierra **no rinde renta** y
+  el monasterio paga **costas** cada año. La sentencia depende del **prestigio**
+  y del clima social: si el monasterio gana, cobra o recupera la tierra (y sube
+  el malestar); si pierde, carga con las costas y el forero conserva la tierra
+  con renta rebajada.
 
 ## Estructura del proyecto
 

@@ -36,3 +36,6 @@ text = "Explotación directa"
 
 [node name="BtnPerdonar" type="Button" parent="M/V/Acciones"]
 text = "Perdonar deuda"
+
+[node name="BtnPleitear" type="Button" parent="M/V/Acciones"]
+text = "Pleitear"

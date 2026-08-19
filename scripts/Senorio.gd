@@ -46,11 +46,12 @@ func refrescar() -> void:
 
 func _resumen() -> String:
 	return ("Leiras: %d  (directa %d · aforadas %d · yermas %d)     Cotos: %d · Vasallos: %d · Aniversarios: %d\n" +
-			"Malestar campesino: %d%%     Renta foral estimada: %d/año     Diezmo: sobre %d parroquias") % [
+			"Malestar campesino: %d%%     Renta foral estimada: %d/año     Diezmo: sobre %d parroquias     Pleitos en curso: %d") % [
 		GameState.leiras.size(), GameState.contar_leiras("directa"),
 		GameState.contar_leiras("aforada"), GameState.contar_leiras("yerma"),
 		GameState.cotos, GameState.vasallos, GameState.aniversarios,
-		int(GameState.malestar), int(GameState.renta_foral_estimada()), GameState.cotos]
+		int(GameState.malestar), int(GameState.renta_foral_estimada()), GameState.cotos,
+		GameState.pleitos_en_curso()]
 
 func _on_accion(indice: int, tipo: String) -> void:
 	match tipo:
@@ -62,6 +63,8 @@ func _on_accion(indice: int, tipo: String) -> void:
 			GameState.poner_en_directa(indice)
 		"perdonar":
 			GameState.perdonar_deuda(indice)
+		"pleitear":
+			GameState.pleitear(indice)
 
 func _abrir_dialogo(indice: int, modo: String) -> void:
 	_pendiente_indice = indice
