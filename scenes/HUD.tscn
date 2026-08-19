@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/HUD.gd" id="1"]
 [ext_resource type="Texture2D" path="res://assets/ui/comida.png" id="2"]
@@ -9,6 +9,19 @@
 [ext_resource type="Texture2D" path="res://assets/ui/vino.png" id="7"]
 [ext_resource type="Texture2D" path="res://assets/ui/poblacion.png" id="8"]
 [ext_resource type="Texture2D" path="res://assets/ui/prestigio.png" id="9"]
+[ext_resource type="PackedScene" path="res://scenes/SenorioPanel.tscn" id="10"]
+
+[sub_resource type="StyleBoxFlat" id="sb_modal"]
+bg_color = Color(0.13, 0.11, 0.09, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.45, 0.38, 0.28, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1")
@@ -349,6 +362,16 @@ text = "Siguiente mes  ▶"
 unique_name_in_owner = true
 text = "Auto"
 
+[node name="Sep1" type="VSeparator" parent="UI/BottomBar/M/Row"]
+
+[node name="BtnSenorio" type="Button" parent="UI/BottomBar/M/Row"]
+unique_name_in_owner = true
+text = "Señorío"
+
+[node name="LblMalestar" type="Label" parent="UI/BottomBar/M/Row"]
+unique_name_in_owner = true
+text = "Malestar: 10%"
+
 [node name="Spacer" type="Control" parent="UI/BottomBar/M/Row"]
 size_flags_horizontal = 3
 
@@ -360,6 +383,9 @@ text = "Vender manuscritos"
 unique_name_in_owner = true
 text = "Vender vino"
 
+[node name="Senorio" parent="UI" instance=ExtResource("10")]
+unique_name_in_owner = true
+
 [node name="Popup" type="Panel" parent="UI"]
 unique_name_in_owner = true
 anchor_left = 0.5
@@ -370,6 +396,7 @@ offset_left = -230.0
 offset_top = -130.0
 offset_right = 230.0
 offset_bottom = 130.0
+theme_override_styles/panel = SubResource("sb_modal")
 
 [node name="M" type="MarginContainer" parent="UI/Popup"]
 anchor_right = 1.0
@@ -416,6 +443,7 @@ offset_left = -260.0
 offset_top = -140.0
 offset_right = 260.0
 offset_bottom = 140.0
+theme_override_styles/panel = SubResource("sb_modal")
 
 [node name="M" type="MarginContainer" parent="UI/Evento"]
 anchor_right = 1.0
@@ -452,6 +480,7 @@ offset_left = -260.0
 offset_top = -130.0
 offset_right = 260.0
 offset_bottom = 130.0
+theme_override_styles/panel = SubResource("sb_modal")
 
 [node name="M" type="MarginContainer" parent="UI/FinJuego"]
 anchor_right = 1.0

@@ -147,4 +147,51 @@ const EVENTOS := [
 		"id": "novicio_ilustre", "peso": 8, "titulo": "Un nuevo hermano",
 		"texto": "Un joven letrado pide ingresar en la comunidad para consagrar su vida a Dios.",
 	},
+	{
+		"id": "donacion_leira", "peso": 9, "titulo": "Donación de una heredad",
+		"texto": "Un caballero, temeroso de su alma, dona una heredad al monasterio 'pro remedio animae', a cambio de un aniversario perpetuo por su memoria.",
+	},
+	{
+		"id": "manda_testamentaria", "peso": 7, "titulo": "Manda testamentaria",
+		"texto": "Un vecino lega en su testamento plata y bienes al cenobio, pidiendo misas por su alma y sepultura en el claustro.",
+	},
+	{
+		"id": "concesion_coto", "peso": 3, "titulo": "Concesión de un coto",
+		"texto": "El rey otorga al monasterio jurisdicción sobre un coto: sus vasallos quedan bajo el señorío del abad, con sus rentas y deberes.",
+	},
+]
+
+# --- Sistema foral: patrimonio de tierras -----------------------------------
+# Tipos de leira (parcela) y el recurso anual que rinden.
+const TIPOS_LEIRA := {
+	"cereal": {"nombre": "Cereal (centeo)", "recurso": "comida", "base": 20.0},
+	"vinha":  {"nombre": "Viñedo",          "recurso": "vino",   "base": 12.0},
+	"souto":  {"nombre": "Souto (castañas)", "recurso": "comida", "base": 14.0},
+}
+
+# Fracciones de renta foral (parte de la cosecha que percibe el monasterio).
+# A mayor fracción, mayor renta pero mayor malestar campesino.
+const FRACCIONES := [
+	{"nombre": "cuarto",  "valor": 0.25,   "presion": 9.0},
+	{"nombre": "quinto",  "valor": 0.20,   "presion": 6.0},
+	{"nombre": "sexto",   "valor": 0.1667, "presion": 4.0},
+	{"nombre": "sétimo",  "valor": 0.1429, "presion": 2.5},
+	{"nombre": "oitavo",  "valor": 0.125,  "presion": 1.0},
+]
+
+# Topónimos y lugares del Deza para nombrar leiras (aproximación histórica).
+const TOPONIMOS_LEIRA := [
+	"a Veiga", "o Souto", "a Chousa", "o Agro", "a Devesa", "o Cortiñal",
+	"a Brea", "os Barreiros", "a Insua", "o Rieiro", "a Fraga", "o Cavado",
+	"a Costa", "o Regueiro", "a Gándara", "o Outeiro",
+]
+const LUGARES := [
+	"Merza", "Trasdeza", "Camba", "Dozón", "Chapa", "Carboeiro",
+	"Ansemil", "Deza", "Vila de Cruces", "Piloño",
+]
+# Apellidos/casas campesinas para las familias foreras ("os de ...").
+const CASAS_FORERAS := [
+	"Vilar", "Carballido", "Reboredo", "Souto", "Lamas", "Quintela",
+	"Bergaza", "Casal", "Outeiro", "Ponte", "Fraga", "Rego", "Cerdeira",
+	"Barreiro", "Nogueira", "Pereira", "Seixas", "Gándara", "Nine", "Bermés",
 ]

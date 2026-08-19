@@ -29,6 +29,34 @@ sobreviviendo a hambrunas, pestes, sequías e incursiones normandas.
 **Objetivo**: mantener viva y próspera la comunidad y elevar el **prestigio**
 del monasterio. Si te quedas sin monjes (hambruna o pestes), fin de la partida.
 
+### El Señorío y el sistema foral (botón «Señorío»)
+
+Modela el funcionamiento real de la economía monástica gallega bajomedieval:
+
+- **Patrimonio de leiras (parcelas)**: cada heredad tiene un nombre real del
+  Deza (p. ej. *o Cortiñal de Ansemil*), un tipo (cereal/centeo, viñedo o
+  souto de castañas) y una calidad (★–★★★). Puede estar **yerma**, en
+  **explotación directa** del monasterio o **aforada**.
+- **Foros**: cedes el *dominio útil* de una leira a una familia campesina
+  (*os de Seixas*…) **por tres voces**, conservando el *dominio directo*. A
+  cambio percibes una **renta foral** en especie (un *cuarto*, *quinto*,
+  *sétimo*…) que se cobra cada año por **San Martiño**. Mayor fracción = más
+  renta pero más **malestar**.
+- **Voces y renovación**: al morir cada generación pasa una voz (y pagan la
+  *luctuosa*). Agotadas las tres, el foro **caduca** y puedes **renovarlo**
+  (normalmente subiendo la renta) o **recuperar** la tierra para explotarla
+  directamente.
+- **Explotación directa**: el monasterio se queda todo el fruto, pero paga a
+  los serventes (coste en plata) y queda expuesto a las malas cosechas.
+- **Donaciones *pro remedio animae***: nobles y vecinos donan tierras y bienes
+  a cambio de **aniversarios** (misas perpetuas que cuestan devoción cada año).
+- **Cotos y vasallos**: la corona concede jurisdicción sobre un coto; sus
+  vasallos y el **diezmo** de las parroquias rinden comida y plata.
+- **Malestar y conflictos**: rentas altas, cotos y malas cosechas suben el
+  malestar → **impagos** (morosidad), y si es extremo, la **revuelta de los
+  irmandiños**, que arrasa foros y rentas. Puedes **dar limosna** o
+  **perdonar deudas** para apaciguar al campesinado.
+
 ## Estructura del proyecto
 
 ```
@@ -38,10 +66,14 @@ scenes/
   HUD.tscn                    Interfaz (recursos, oficios, mercado, crónica)
   Building.tscn               Edificio/solar con clic
   Monk.tscn                   Monje que deambula
+  SenorioPanel.tscn           Panel del señorío (patrimonio y foros)
+  LeiraRow.tscn               Fila de una leira dentro del señorío
 scripts/
-  Data.gd                     Datos: recursos, oficios, edificios, eventos
-  GameState.gd                Lógica de simulación (autoload, sin gráficos)
+  Data.gd                     Datos: recursos, oficios, edificios, eventos,
+                              tipos de leira, fracciones forales, topónimos
+  GameState.gd                Lógica de simulación y señorío (autoload)
   Ground.gd                   Pintado del terreno con el TileSet
+  Senorio.gd / LeiraRow.gd    Interfaz del sistema foral
   Building.gd / Monk.gd / Main.gd / HUD.gd
 resources/
   monastery_tileset.tres      TileSet (hierba, camino, piedra, agua, campo)

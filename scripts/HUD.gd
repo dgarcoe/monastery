@@ -28,6 +28,7 @@ func _ready() -> void:
 	%BtnVenderManu.pressed.connect(func() -> void: GameState.vender("manuscritos", GameState.recursos["manuscritos"]))
 	%BtnVenderVino.pressed.connect(func() -> void: GameState.vender("vino", GameState.recursos["vino"]))
 	%BtnConstruir.pressed.connect(_on_construir)
+	%BtnSenorio.pressed.connect(func() -> void: %Senorio.abrir())
 	%BtnCerrar.pressed.connect(func() -> void: %Popup.hide())
 	%BtnEvtOk.pressed.connect(func() -> void: %Evento.hide())
 	%BtnReiniciar.pressed.connect(_on_reiniciar)
@@ -62,6 +63,7 @@ func _refrescar() -> void:
 	%LblFecha.text = "%s de %d" % [GameState.MESES[GameState.mes - 1], GameState.anio]
 	%LblEstacion.text = GameState.estacion()
 	%LblLibres.text = "Monjes libres: %d" % GameState.monjes_libres()
+	%LblMalestar.text = "Malestar: %d%%" % int(GameState.malestar)
 
 	# Oficios.
 	for o in Data.OFICIOS:

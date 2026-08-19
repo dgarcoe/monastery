@@ -1,0 +1,105 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/Senorio.gd" id="1"]
+
+[sub_resource type="StyleBoxFlat" id="sb_panel"]
+bg_color = Color(0.13, 0.11, 0.09, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.45, 0.38, 0.28, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="SenorioPanel" type="Panel"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -410.0
+offset_top = -280.0
+offset_right = 410.0
+offset_bottom = 280.0
+theme_override_styles/panel = SubResource("sb_panel")
+script = ExtResource("1")
+
+[node name="M" type="MarginContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="V" type="VBoxContainer" parent="M"]
+theme_override_constants/separation = 8
+
+[node name="Titulo" type="Label" parent="M/V"]
+text = "Señorío del monasterio · patrimonio y foros"
+
+[node name="Resumo" type="Label" parent="M/V"]
+autowrap_mode = 3
+text = "..."
+
+[node name="Barra" type="HBoxContainer" parent="M/V"]
+theme_override_constants/separation = 8
+
+[node name="BtnLimosna" type="Button" parent="M/V/Barra"]
+text = "Dar limosna (10 comida · 5 plata)"
+
+[node name="Spacer" type="Control" parent="M/V/Barra"]
+size_flags_horizontal = 3
+
+[node name="BtnCerrar" type="Button" parent="M/V/Barra"]
+text = "Cerrar"
+
+[node name="Scroll" type="ScrollContainer" parent="M/V"]
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Lista" type="VBoxContainer" parent="M/V/Scroll"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="Dialogo" type="Panel" parent="."]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -240.0
+offset_top = -120.0
+offset_right = 240.0
+offset_bottom = 120.0
+theme_override_styles/panel = SubResource("sb_panel")
+
+[node name="DM" type="MarginContainer" parent="Dialogo"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="DV" type="VBoxContainer" parent="Dialogo/DM"]
+theme_override_constants/separation = 10
+
+[node name="DlgTitulo" type="Label" parent="Dialogo/DM/DV"]
+text = "Aforar"
+
+[node name="DlgInfo" type="Label" parent="Dialogo/DM/DV"]
+autowrap_mode = 3
+text = "Elige la fracción de renta foral. Una renta mayor produce más ingresos pero agrava el malestar del campesinado."
+
+[node name="OpcFraccion" type="OptionButton" parent="Dialogo/DM/DV"]
+
+[node name="DBtns" type="HBoxContainer" parent="Dialogo/DM/DV"]
+theme_override_constants/separation = 8
+
+[node name="DlgConfirmar" type="Button" parent="Dialogo/DM/DV/DBtns"]
+text = "Confirmar"
+
+[node name="DlgCancelar" type="Button" parent="Dialogo/DM/DV/DBtns"]
+text = "Cancelar"
