@@ -16,6 +16,8 @@ script = ExtResource("1")
 tile_set = ExtResource("3")
 script = ExtResource("2")
 
+[node name="Leiras" type="Node2D" parent="Territorio"]
+
 [node name="Parroquias" type="Node2D" parent="Territorio"]
 
 [node name="Aldeas" type="Node2D" parent="Territorio"]

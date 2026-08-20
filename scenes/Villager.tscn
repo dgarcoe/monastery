@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3]
 
-[ext_resource type="Script" path="res://scripts/Wanderer.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/Aldeano.gd" id="1"]
 [ext_resource type="Texture2D" path="res://assets/characters/villager.png" id="2"]
 
 [node name="Villager" type="Node2D"]

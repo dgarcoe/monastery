@@ -52,6 +52,7 @@ func _ready() -> void:
 	GameState.edificio_pulsado.connect(_on_edificio)
 	GameState.aldea_pulsada.connect(_on_aldea)
 	GameState.parroquia_pulsada.connect(_on_parroquia)
+	GameState.leira_pulsada.connect(func(_indice: int) -> void: %Senorio.abrir())
 	GameState.vista_cambiada.connect(_on_vista)
 	%BtnVista.pressed.connect(_on_btn_vista)
 	%BtnAldeaCerrar.pressed.connect(func() -> void:

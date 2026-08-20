@@ -14,6 +14,9 @@ const ParroquiaScene := preload("res://scenes/Parroquia.tscn")
 const MonMarkerScene := preload("res://scenes/MonMarker.tscn")
 const RivalMarkerScene := preload("res://scenes/RivalMarker.tscn")
 const ExplotacionMarkerScene := preload("res://scenes/ExplotacionMarker.tscn")
+const LeiraMarkerScene := preload("res://scenes/LeiraMarker.tscn")
+
+var _leiras_procesadas: int = 0  # nº de leiras ya consideradas para marcador
 
 # Centro del patio y disposición de los edificios (en celdas del patio).
 const PATIO_CENTRO := Vector2i(10, 7)
@@ -37,6 +40,7 @@ func _ready() -> void:
 	GameState.solicitar_vista.connect(set_vista)
 	GameState.estado_cambiado.connect(_sincronizar_monjes)
 	GameState.estado_cambiado.connect(_sincronizar_explotacions)
+	GameState.estado_cambiado.connect(_sincronizar_leiras)
 	set_vista("mosteiro")
 
 func _tile_a_mundo(t: Vector2i) -> Vector2:
@@ -78,6 +82,7 @@ func _poblar_territorio() -> void:
 		$Territorio/Marcadores.add_child(rival)
 	$Territorio/CamTerritorio.position = _tile_a_mundo(GameState.sitio_mosteiro)
 	_sincronizar_explotacions()
+	_sincronizar_leiras()
 
 ## Coloca un marcador por cada explotación construida (muíño/canteira/pasto).
 func _sincronizar_explotacions() -> void:
@@ -89,6 +94,21 @@ func _sincronizar_explotacions() -> void:
 		nodo.tipo = ex["tipo"]
 		nodo.position = _tile_a_mundo(Vector2i(int(ex["x"]), int(ex["y"])))
 		cont.add_child(nodo)
+
+## Añade un marcador por cada leira nueva que ya tenga celda asignada. Las
+## leiras nunca se eliminan (solo cambian de estado), así que basta con
+## procesar las que se hayan añadido desde la última sincronización; cada
+## marcador se actualiza solo (tiñe según cultivo/estado) al oír estado_cambiado.
+func _sincronizar_leiras() -> void:
+	var cont: Node2D = $Territorio/Leiras
+	for i in range(_leiras_procesadas, GameState.leiras.size()):
+		var l: Dictionary = GameState.leiras[i]
+		if int(l.get("x", -1)) >= 0:
+			var nodo := LeiraMarkerScene.instantiate()
+			nodo.position = _tile_a_mundo(Vector2i(int(l["x"]), int(l["y"])))
+			cont.add_child(nodo)
+			nodo.configurar(i)
+	_leiras_procesadas = GameState.leiras.size()
 
 ## Si estamos en modo construcción, un clic en el territorio intenta levantar
 ## la explotación elegida sobre la casilla pulsada.

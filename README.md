@@ -115,8 +115,10 @@ del monasterio. Si te quedas sin monjes (hambruna o pestes), fin de la partida.
 Modela el funcionamiento real de la economía monástica gallega bajomedieval:
 
 - **Patrimonio de leiras (parcelas)**: cada heredad tiene un nombre real del
-  Deza (p. ej. *o Cortiñal de Ansemil*), un **cultivo** y una calidad (★–★★★).
-  Puede estar **yerma**, en **explotación directa** del monasterio o **aforada**.
+  Deza (p. ej. *o Cortiñal de Ansemil*), un **cultivo** y una calidad (★–★★★),
+  y está **atada a una celda de campo real del territorio** (ver más abajo,
+  «El mapa está vivo»). Puede estar **yerma**, en **explotación directa** del
+  monasterio o **aforada**.
 - **Cultivos y ferrados**: cada leira da un cultivo propio del contorno de su
   aldea, con rendimiento y valor distintos:
   - **Centeno** — el pan de Galicia: rústico, mucho rendimiento, poco valor.
@@ -157,6 +159,22 @@ Modela el funcionamiento real de la economía monástica gallega bajomedieval:
   el malestar); si pierde, carga con las costas y el forero conserva la tierra
   con renta rebajada.
 
+### El mapa está vivo: cultivos y aldeanos trabajando
+
+El territorio no es decorado: cada leira ocupa una **celda de campo real**
+junto a su aldea (hasta 6 por aldea) y se ve en el mapa como un **rombo**
+coloreado según su producto — dorado para grano, morado para vino, marrón
+para castañas — atenuado si está **yerma**. Haz **clic** en una leira del
+mapa para abrir el Señorío y gestionarla.
+
+- **La calidad depende del terreno real**, no de un número aleatorio: una
+  celda junto a un **río o regato** es más fértil (veiga), una celda cerca
+  del **monte** rinde peor. Las nuevas leiras (dote inicial, donaciones)
+  ocupan una celda libre de su aldea automáticamente.
+- **Los aldeanos trabajan**: si una aldea tiene alguna leira propia, parte de
+  sus vecinos caminan periódicamente desde el poblado hasta ella, se detienen
+  un rato «trabajando» y vuelven a casa, en vez de deambular sin más.
+
 ## Estructura del proyecto
 
 ```
@@ -170,7 +188,9 @@ scenes/
   MonMarker.tscn              Marcador del monasterio en el territorio
   RivalMarker.tscn            Marcador del monasterio rival
   ExplotacionMarker.tscn      Marcador de muíño/canteira/pasto construido
-  Monk.tscn / Villager.tscn   Monje y aldeano (deambulan)
+  LeiraMarker.tscn            Marcador de una leira sobre su celda real
+  Monk.tscn                   Monje que deambula (Wanderer.gd)
+  Villager.tscn                Aldeano que camina hasta su leira (Aldeano.gd)
   SenorioPanel.tscn           Panel del señorío (patrimonio y foros)
   LeiraRow.tscn               Fila de una leira dentro del señorío
   PoderesPanel.tscn           Panel de rivalidad (facciones, parroquias, construir)
@@ -185,10 +205,12 @@ scripts/
   Ground.gd                   Pinta el terreno del territorio con el TileSet
   MonasteryGround.gd          Pinta el patio del monasterio
   CameraController.gd         Cámara con desplazamiento y zoom (por mapa)
-  Wanderer.gd                 Deambular de monjes y aldeanos
+  Wanderer.gd                 Deambular al azar (monjes)
+  Aldeano.gd                  Aldeano: camina a su leira y vuelve, o deambula
   Aldea.gd / Parroquia.gd     Aldeas y parroquias (fichas, teñido por facción)
   MonMarker.gd                Entrar al monasterio desde el territorio
   ExplotacionMarker.gd        Sprite de una explotación construida
+  LeiraMarker.gd               Tiñe la leira por cultivo/estado; clic → Señorío
   Senorio.gd / LeiraRow.gd    Interfaz del sistema foral
   Poderes.gd                  Interfaz de rivalidad y construcción de explotaciones
   Mercado.gd                  Interfaz del mercado regional
@@ -234,6 +256,7 @@ no tendrás que tocar ninguna escena.
 | `buildings/muino.png` | 96×96 | Explotación: muíño |
 | `buildings/canteira.png` | 96×96 | Explotación: canteira |
 | `buildings/pasto.png` (edificio) | 96×96 | Explotación: pasto/braña |
+| `buildings/leira_marker.png` | 40×40 | Leira sobre el mapa (teñible por producto) |
 | `buildings/church.png` | 128×128 | *(reservado)* |
 | `buildings/iglesia.png` | 128×128 | Iglesia |
 | `buildings/scriptorium.png` | 128×128 | Scriptorium |
@@ -252,7 +275,8 @@ Notas:
 - El nombre del sprite de cada edificio coincide con su `id` en `Data.gd`
   (`Building.gd` carga `res://assets/buildings/<id>.png`).
 - Para animar al monje o al aldeano, añade un `AnimationPlayer`/
-  `AnimatedSprite2D` en `Monk.tscn` / `Villager.tscn` sin cambiar `Wanderer.gd`.
+  `AnimatedSprite2D` en `Monk.tscn` / `Villager.tscn` sin cambiar
+  `Wanderer.gd` / `Aldeano.gd`.
 - Puedes **pintar el mapa a mano** en el editor con tus tiles y borrar
   `Ground.gd` si no quieres el terreno generado por defecto.
 

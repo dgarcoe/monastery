@@ -12,6 +12,7 @@ signal fin_de_partida(texto: String)         ## La partida ha terminado.
 signal edificio_pulsado(edificio_id: String) ## Se hizo clic en un edificio del mapa.
 signal aldea_pulsada(indice: int)             ## Se hizo clic en una aldea del mapa.
 signal parroquia_pulsada(indice: int)         ## Se hizo clic en una parroquia.
+signal leira_pulsada(indice: int)             ## Se hizo clic en una leira del mapa.
 signal vista_cambiada(vista: String)          ## Vista aplicada: "mosteiro" | "territorio".
 signal solicitar_vista(vista: String)         ## Petición de cambio de vista.
 
@@ -308,13 +309,24 @@ func _xerar_parroquias(c: Dictionary) -> void:
 			ald["parroquia"] = parr["nome"]
 			ald["parroquia_idx"] = idx_parr
 			parr["aldeas"].append(aldeas.size())
-			aldeas.append(ald)
-			# Marca campos de labor junto a la aldea.
-			for d: Vector2i in [Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0)]:
+			# Marca campos de labor junto a la aldea: hasta 6 celdas propias
+			# donde luego se plantarán las leiras reales de esta aldea.
+			var campos: Array = []
+			var offsets := [
+				Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(0, -1),
+				Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1),
+			]
+			for d: Vector2i in offsets:
+				if campos.size() >= 6:
+					break
 				var fx: int = ax + d.x
 				var fy: int = ay + d.y
 				if fx >= 0 and fx < MAPA_ANCHO and fy >= 0 and fy < MAPA_ALTO and terreno[fx][fy] == 0:
 					terreno[fx][fy] = 4
+					campos.append(Vector2i(fx, fy))
+			ald["campos"] = campos
+			ald["campos_libres"] = campos.duplicate()
+			aldeas.append(ald)
 			colocadas += 1
 
 ## Reparte la influencia inicial de cada parroquia entre las cuatro partes:
@@ -437,15 +449,67 @@ func _cultivo_por_zona(zona: String) -> String:
 		return "centeno"
 	return candidatos[randi() % candidatos.size()]
 
-## Crea una leira nueva vinculada a una aldea al azar (según su zona).
+## Calidad de una celda de campo según el terreno real que la rodea: la
+## cercanía al agua (río o regato) la hace más fértil, la cercanía al monte
+## la empobrece. Así el mapa deja de ser decorado: dicta la calidad real de
+## la leira que se plante ahí.
+func _calidade_de_tile(x: int, y: int) -> int:
+	var puntos := 1
+	for dx in range(-1, 2):
+		for dy in range(-1, 2):
+			if dx == 0 and dy == 0:
+				continue
+			var nx := x + dx
+			var ny := y + dy
+			if nx < 0 or nx >= MAPA_ANCHO or ny < 0 or ny >= MAPA_ALTO:
+				continue
+			match int(terreno[nx][ny]):
+				3, 7: puntos += 1  # agua o regato cerca: veiga fértil
+				6: puntos -= 1     # monte cerca: tierra pobre
+	return clampi(puntos, 1, 3)
+
+## Reserva una celda de campo libre para una nueva leira: preferentemente de
+## la propia aldea, si no de otra de la misma parroquia. Devuelve (-1,-1) si
+## no queda ninguna celda libre en todo el contorno.
+func _asignar_campo(aldea_idx: int) -> Vector2i:
+	if aldea_idx < 0 or aldea_idx >= aldeas.size():
+		return Vector2i(-1, -1)
+	var a: Dictionary = aldeas[aldea_idx]
+	var libres: Array = a.get("campos_libres", [])
+	if not libres.is_empty():
+		return libres.pop_back()
+	var parr_idx: int = int(a.get("parroquia_idx", -1))
+	if parr_idx >= 0 and parr_idx < parroquias.size():
+		for idx in parroquias[parr_idx]["aldeas"]:
+			var vecina: Dictionary = aldeas[int(idx)]
+			var libres_v: Array = vecina.get("campos_libres", [])
+			if not libres_v.is_empty():
+				return libres_v.pop_back()
+	return Vector2i(-1, -1)
+
+## Crea una leira nueva vinculada a una aldea al azar (según su zona), atada
+## a una celda de campo real del mapa cuando queda alguna disponible.
 func _nova_leira_en_aldea() -> Dictionary:
-	var l := _nova_leira("centeno", 1 + randi() % 3)
-	if aldeas.size() > 0:
-		var a: Dictionary = aldeas[randi() % aldeas.size()]
-		l["aldea"] = a["nome"]
-		l["cultivo"] = _cultivo_por_zona(a["zona"])
-		l["nome"] = "%s de %s" % [
-			Data.TOPONIMOS_LEIRA[randi() % Data.TOPONIMOS_LEIRA.size()], a["nome"]]
+	var l := _nova_leira("centeno", 1)
+	if aldeas.is_empty():
+		return l
+	# Prefiere aldeas que aún tengan campos libres.
+	var candidatas: Array = []
+	for i in range(aldeas.size()):
+		if not aldeas[i].get("campos_libres", []).is_empty():
+			candidatas.append(i)
+	var idx: int = (candidatas[randi() % candidatas.size()] if not candidatas.is_empty()
+		else randi() % aldeas.size())
+	var a: Dictionary = aldeas[idx]
+	l["aldea"] = a["nome"]
+	l["cultivo"] = _cultivo_por_zona(a["zona"])
+	l["nome"] = "%s de %s" % [
+		Data.TOPONIMOS_LEIRA[randi() % Data.TOPONIMOS_LEIRA.size()], a["nome"]]
+	var celda := _asignar_campo(idx)
+	if celda.x >= 0:
+		l["x"] = celda.x
+		l["y"] = celda.y
+		l["calidade"] = _calidade_de_tile(celda.x, celda.y)
 	return l
 
 func _nome_familia_de_aldea(nome_aldea: String) -> String:
@@ -725,6 +789,7 @@ func _nova_leira(cultivo: String, calidade: int) -> Dictionary:
 		"voces": 0,                  # voces restantes del contrato
 		"morosidade": 0.0,           # renta atrasada acumulada (en ferrados/azumbres)
 		"aldea": "",                 # aldea a la que pertenece la heredad
+		"x": -1, "y": -1,            # celda de campo real en el mapa (-1 = sin asignar)
 		"pleito": false,             # ¿litigio en curso ante la Audiencia?
 		"pleito_causa": "",          # impago | recuperacion
 		"pleito_anos": 0,            # años que lleva el pleito
