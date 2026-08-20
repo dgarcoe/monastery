@@ -7,6 +7,7 @@ extends CanvasLayer
 
 var _sel_edificio: String = ""
 var _sel_parroquia: int = -1
+var _sel_aldea: int = -1
 var _vals: Dictionary = {}
 var _cnt: Dictionary = {}
 var _vista: String = "mosteiro"
@@ -43,6 +44,8 @@ func _ready() -> void:
 		if _sel_parroquia >= 0: GameState.dotar_iglesia(_sel_parroquia))
 	%BtnDisputar.pressed.connect(func() -> void:
 		if _sel_parroquia >= 0: GameState.disputar_parroquia(_sel_parroquia))
+	%BtnSolicitarDonacion.pressed.connect(func() -> void:
+		if _sel_aldea >= 0: GameState.solicitar_donacion(_sel_aldea))
 
 	# Señales del modelo.
 	GameState.estado_cambiado.connect(_refrescar)
@@ -57,6 +60,7 @@ func _ready() -> void:
 	%BtnVista.pressed.connect(_on_btn_vista)
 	%BtnAldeaCerrar.pressed.connect(func() -> void:
 		_sel_parroquia = -1
+		_sel_aldea = -1
 		%AldeaPopup.hide())
 
 	%Popup.hide()
@@ -111,6 +115,8 @@ func _refrescar() -> void:
 		_pintar_popup(_sel_edificio)
 	if %AldeaPopup.visible and _sel_parroquia >= 0:
 		_on_parroquia(_sel_parroquia)
+	if %AldeaPopup.visible and _sel_aldea >= 0:
+		_on_aldea(_sel_aldea)
 
 func _nome_tile_modo(id: int) -> String:
 	match id:
@@ -123,7 +129,9 @@ func _on_aldea(indice: int) -> void:
 	if indice < 0 or indice >= GameState.aldeas.size():
 		return
 	_sel_parroquia = -1
+	_sel_aldea = indice
 	%AccionesParroquia.visible = false
+	%AccionesAldea.visible = true
 	var a: Dictionary = GameState.aldeas[indice]
 	var zona_nome: String = {
 		"cereal": "cereal (centeno y trigo)", "vinha": "viñedo",
@@ -131,14 +139,45 @@ func _on_aldea(indice: int) -> void:
 	}.get(a["zona"], a["zona"])
 	var parr: String = a.get("parroquia", "—")
 	%AldeaTitulo.text = "Aldea de %s" % a["nome"]
-	%AldeaInfo.text = "Parroquia de %s\nPoblación: %d familias\nContorno de %s\nCasas: %s\n\nDe estas casas salen los foreros de sus heredades, y de sus vecinos las donaciones al monasterio." % [
+	%AldeaInfo.text = "Parroquia de %s\nPoblación: %d familias\nContorno de %s\nCasas: %s\n\nDe estas casas salen los foreros de sus heredades. Encargad obras pías para ganaros su devoción y solicitar la donación de sus tierras." % [
 		parr, int(a["poboacion"]), zona_nome, ", ".join(a["casas"])]
+
+	%LblAfinidad.text = "Afinidad hacia el monasterio: %d%%  (umbral para donación: %d%%)" % [
+		int(a["afinidade"]), int(Data.UMBRAL_DONACION)]
+
+	for c in %ObrasPias.get_children():
+		c.queue_free()
+	for o in Data.OBRAS_PIAS:
+		var partes: Array = []
+		for recurso in o["coste"]:
+			var icono: String = Data.RECURSOS.get(recurso, {}).get("icono", recurso)
+			partes.append("%d%s" % [int(o["coste"][recurso]), icono])
+		var btn := Button.new()
+		btn.text = "%s (%s)" % [o["nombre"], " ".join(partes)]
+		btn.tooltip_text = o["desc"]
+		btn.disabled = not GameState.puede_encargar_obra(indice, o["id"])
+		var obra_id: String = o["id"]
+		btn.pressed.connect(func() -> void: GameState.encargar_obra(indice, obra_id))
+		%ObrasPias.add_child(btn)
+
+	var puede_donar := GameState.puede_solicitar_donacion(indice)
+	%BtnSolicitarDonacion.disabled = not puede_donar
+	if puede_donar:
+		%BtnSolicitarDonacion.text = "Solicitar donación (%d%% de éxito)" % int(
+			GameState.probabilidad_donacion(indice) * 100.0)
+	elif float(a["afinidade"]) < Data.UMBRAL_DONACION:
+		%BtnSolicitarDonacion.text = "Solicitar donación (afinidad insuficiente)"
+	else:
+		%BtnSolicitarDonacion.text = "Solicitar donación (sin tierras libres cerca)"
+
 	%AldeaPopup.show()
 
 func _on_parroquia(indice: int) -> void:
 	if indice < 0 or indice >= GameState.parroquias.size():
 		return
 	_sel_parroquia = indice
+	_sel_aldea = -1
+	%AccionesAldea.visible = false
 	var p: Dictionary = GameState.parroquias[indice]
 	var nomes: Array = []
 	for idx in p["aldeas"]:

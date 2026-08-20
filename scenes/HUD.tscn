@@ -519,10 +519,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -260.0
-offset_top = -160.0
-offset_right = 260.0
-offset_bottom = 160.0
+offset_left = -290.0
+offset_top = -220.0
+offset_right = 290.0
+offset_bottom = 220.0
 theme_override_styles/panel = SubResource("sb_modal")
 
 [node name="M" type="MarginContainer" parent="UI/AldeaPopup"]
@@ -557,6 +557,22 @@ text = "Dotar iglesia (15🪙 10🪨)"
 [node name="BtnDisputar" type="Button" parent="UI/AldeaPopup/M/V/AccionesParroquia"]
 unique_name_in_owner = true
 text = "Disputar (20🪙)"
+
+[node name="AccionesAldea" type="VBoxContainer" parent="UI/AldeaPopup/M/V"]
+unique_name_in_owner = true
+theme_override_constants/separation = 6
+
+[node name="LblAfinidad" type="Label" parent="UI/AldeaPopup/M/V/AccionesAldea"]
+unique_name_in_owner = true
+text = "Afinidad: 0%"
+
+[node name="ObrasPias" type="HBoxContainer" parent="UI/AldeaPopup/M/V/AccionesAldea"]
+unique_name_in_owner = true
+theme_override_constants/separation = 6
+
+[node name="BtnSolicitarDonacion" type="Button" parent="UI/AldeaPopup/M/V/AccionesAldea"]
+unique_name_in_owner = true
+text = "Solicitar donación"
 
 [node name="BtnAldeaCerrar" type="Button" parent="UI/AldeaPopup/M/V"]
 unique_name_in_owner = true

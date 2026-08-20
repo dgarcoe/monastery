@@ -487,19 +487,38 @@ func _asignar_campo(aldea_idx: int) -> Vector2i:
 				return libres_v.pop_back()
 	return Vector2i(-1, -1)
 
+## Comprueba si queda campo libre para esta aldea (propio o de una vecina de
+## la misma parroquia) sin reservarlo, para saber si una donación es posible.
+func _hay_campo_libre(aldea_idx: int) -> bool:
+	if aldea_idx < 0 or aldea_idx >= aldeas.size():
+		return false
+	var a: Dictionary = aldeas[aldea_idx]
+	if not a.get("campos_libres", []).is_empty():
+		return true
+	var parr_idx: int = int(a.get("parroquia_idx", -1))
+	if parr_idx >= 0 and parr_idx < parroquias.size():
+		for idx in parroquias[parr_idx]["aldeas"]:
+			if not aldeas[int(idx)].get("campos_libres", []).is_empty():
+				return true
+	return false
+
 ## Crea una leira nueva vinculada a una aldea al azar (según su zona), atada
 ## a una celda de campo real del mapa cuando queda alguna disponible.
-func _nova_leira_en_aldea() -> Dictionary:
+## aldea_idx = -1 elige una aldea al azar (preferentemente con campos libres);
+## si se indica un índice concreto, la heredad se planta ahí (obras pías).
+func _nova_leira_en_aldea(aldea_idx: int = -1) -> Dictionary:
 	var l := _nova_leira("centeno", 1)
 	if aldeas.is_empty():
 		return l
-	# Prefiere aldeas que aún tengan campos libres.
-	var candidatas: Array = []
-	for i in range(aldeas.size()):
-		if not aldeas[i].get("campos_libres", []).is_empty():
-			candidatas.append(i)
-	var idx: int = (candidatas[randi() % candidatas.size()] if not candidatas.is_empty()
-		else randi() % aldeas.size())
+	var idx: int = aldea_idx
+	if idx < 0 or idx >= aldeas.size():
+		# Prefiere aldeas que aún tengan campos libres.
+		var candidatas: Array = []
+		for i in range(aldeas.size()):
+			if not aldeas[i].get("campos_libres", []).is_empty():
+				candidatas.append(i)
+		idx = (candidatas[randi() % candidatas.size()] if not candidatas.is_empty()
+			else randi() % aldeas.size())
 	var a: Dictionary = aldeas[idx]
 	l["aldea"] = a["nome"]
 	l["cultivo"] = _cultivo_por_zona(a["zona"])
@@ -760,6 +779,10 @@ func _fin_de_anio() -> void:
 	_reckoning_foral()
 	_reckoning_mercado()
 	_reckoning_politico()
+	# La afinidad decae hacia un poso de devoción antigua si no se cultiva:
+	# obliga a mantener las obras pías, no solo a hacerlas una vez.
+	for a in aldeas:
+		a["afinidade"] = maxf(30.0, float(a["afinidade"]) - 6.0)
 	# Posible ingreso de un novicio si la comunidad prospera.
 	if (recursos["fe"] >= poblacion * 6.0
 			and recursos["comida"] >= poblacion * 2.0
@@ -1036,6 +1059,109 @@ func _mover_influencia(p: Dictionary, hacia_id: String, cantidade: float) -> voi
 		if id != hacia_id:
 			inf[id] = float(inf[id]) - cantidade * (float(inf[id]) / total_outros)
 	inf[hacia_id] = float(inf[hacia_id]) + cantidade
+
+# --- Obras pías: la vía activa para captar tierra ----------------------------
+# Encargar obras pías sube la "afinidade" de una aldea (o de toda su
+# parroquia). Con afinidade suficiente se puede "solicitar donación": una
+# tirada de probabilidad que, si sale bien, añade una leira real en esa
+# aldea. Compite con la rivalidad: cuanto más domine el obispo/la hidalguía/
+# el rival esa parroquia, más difícil es conseguirla; y si sale bien, el
+# monasterio gana algo de influencia allí.
+
+func _def_obra_pia(id: String) -> Dictionary:
+	for o in Data.OBRAS_PIAS:
+		if o["id"] == id:
+			return o
+	return {}
+
+func puede_encargar_obra(aldea_idx: int, obra_id: String) -> bool:
+	if terminado or aldea_idx < 0 or aldea_idx >= aldeas.size():
+		return false
+	var o := _def_obra_pia(obra_id)
+	if o.is_empty():
+		return false
+	if String(o.get("requiere", "")) != "" and get_nivel(o["requiere"]) <= 0:
+		return false
+	for recurso in o["coste"]:
+		if recursos.get(recurso, 0.0) < float(o["coste"][recurso]):
+			return false
+	return true
+
+## Encarga una obra pía (misa, misión, hospital…) en una aldea concreta.
+func encargar_obra(aldea_idx: int, obra_id: String) -> bool:
+	if not puede_encargar_obra(aldea_idx, obra_id):
+		return false
+	var o := _def_obra_pia(obra_id)
+	var a: Dictionary = aldeas[aldea_idx]
+	for recurso in o["coste"]:
+		recursos[recurso] -= float(o["coste"][recurso])
+	var subida := float(o["afinidade"])
+	if o["ambito"] == "parroquia":
+		var parr_idx: int = int(a.get("parroquia_idx", -1))
+		if parr_idx >= 0 and parr_idx < parroquias.size():
+			for idx in parroquias[parr_idx]["aldeas"]:
+				var vecina: Dictionary = aldeas[int(idx)]
+				vecina["afinidade"] = clampf(float(vecina["afinidade"]) + subida, 0.0, 100.0)
+			mensaje.emit("%s celebrado en la parroquia de %s: crece la devoción por todo su contorno." % [
+				o["nombre"], a["parroquia"]])
+	else:
+		a["afinidade"] = clampf(float(a["afinidade"]) + subida, 0.0, 100.0)
+		mensaje.emit("%s en %s: los vecinos os miran con mejores ojos (afinidad %d%%)." % [
+			o["nombre"], a["nome"], int(a["afinidade"])])
+	estado_cambiado.emit()
+	return true
+
+## Probabilidad de éxito si se solicita la donación ahora mismo (0..1), para
+## que el jugador la vea antes de arriesgarse. Depende de la afinidade de la
+## aldea y de cuánto dominen la parroquia otras facciones.
+func probabilidad_donacion(aldea_idx: int) -> float:
+	if aldea_idx < 0 or aldea_idx >= aldeas.size():
+		return 0.0
+	var a: Dictionary = aldeas[aldea_idx]
+	var afin: float = float(a["afinidade"])
+	if afin < Data.UMBRAL_DONACION:
+		return 0.0
+	var base := clampf((afin - 40.0) / 65.0, 0.05, 0.92)  # 65%->~0.38, 100%->~0.92
+	var parr_idx: int = int(a.get("parroquia_idx", -1))
+	if parr_idx >= 0 and parr_idx < parroquias.size():
+		var p: Dictionary = parroquias[parr_idx]
+		var mon: float = float(p["influencia"].get("monasterio", 0.0)) / 100.0
+		base -= (1.0 - mon) * 0.35  # cuanto menos domina el monasterio, más cuesta
+	return clampf(base, 0.05, 0.95)
+
+func puede_solicitar_donacion(aldea_idx: int) -> bool:
+	if terminado or aldea_idx < 0 or aldea_idx >= aldeas.size():
+		return false
+	var a: Dictionary = aldeas[aldea_idx]
+	return float(a["afinidade"]) >= Data.UMBRAL_DONACION and _hay_campo_libre(aldea_idx)
+
+## Solicita formalmente la donación de tierras a una aldea con afinidade
+## suficiente. Consume afinidade siempre (más si sale bien: el gesto se
+## agradece pero también se agota); es una tirada, no algo garantizado.
+func solicitar_donacion(aldea_idx: int) -> bool:
+	if not puede_solicitar_donacion(aldea_idx):
+		return false
+	var a: Dictionary = aldeas[aldea_idx]
+	var prob := probabilidad_donacion(aldea_idx)
+	var exito := randf() < prob
+	var parr_idx: int = int(a.get("parroquia_idx", -1))
+	if exito:
+		var l := _nova_leira_en_aldea(aldea_idx)
+		leiras.append(l)
+		aniversarios += 1
+		prestigio += 4
+		a["afinidade"] = clampf(float(a["afinidade"]) - 35.0, 0.0, 100.0)
+		if parr_idx >= 0 and parr_idx < parroquias.size():
+			_mover_influencia(parroquias[parr_idx], "monasterio", 8.0)
+		evento.emit("Donación conseguida",
+			"Los vecinos de %s, agradecidos por vuestras obras pías, donan «%s» al monasterio." % [
+				a["nome"], l["nome"]])
+	else:
+		a["afinidade"] = clampf(float(a["afinidade"]) - 20.0, 0.0, 100.0)
+		evento.emit("La aldea declina, por ahora",
+			"%s aprecia vuestro celo, pero de momento no se decide a donar tierras. Seguid cultivando su devoción." % a["nome"])
+	estado_cambiado.emit()
+	return exito
 
 func _nome_fraccion(valor: float) -> String:
 	for f in Data.FRACCIONES:

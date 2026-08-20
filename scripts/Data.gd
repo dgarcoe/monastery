@@ -155,8 +155,8 @@ const EVENTOS := [
 		"texto": "Un joven letrado pide ingresar en la comunidad para consagrar su vida a Dios.",
 	},
 	{
-		"id": "donacion_leira", "peso": 9, "titulo": "Donación de una heredad",
-		"texto": "Un caballero, temeroso de su alma, dona una heredad al monasterio 'pro remedio animae', a cambio de un aniversario perpetuo por su memoria.",
+		"id": "donacion_leira", "peso": 3, "titulo": "Donación de una heredad",
+		"texto": "Un caballero, temeroso de su alma, dona una heredad al monasterio 'pro remedio animae', a cambio de un aniversario perpetuo por su memoria. (La vía segura para conseguir tierras son las obras pías: encárgalas desde la ficha de una aldea.)",
 	},
 	{
 		"id": "manda_testamentaria", "peso": 7, "titulo": "Manda testamentaria",
@@ -381,6 +381,31 @@ const FACCIONES := {
 		"foco": "donacions", "agresividade": 0.7,
 	},
 }
+
+# --- Obras pías: la vía activa para captar nuevas tierras -------------------
+# Encargadas desde la ficha de una aldea, suben su "afinidade" (0..100) hacia
+# el monasterio. Al superar el umbral se puede "solicitar donación": una
+# tirada de probabilidad (ver GameState.solicitar_donacion) que, si sale bien,
+# añade una leira real en esa aldea. "ambito": "aldea" solo sube esa aldea;
+# "parroquia" sube todas las aldeas de su parroquia de golpe (más cara).
+const OBRAS_PIAS := [
+	{
+		"id": "misa", "nombre": "Misa solemne", "ambito": "aldea",
+		"coste": {"fe": 5.0}, "afinidade": 8.0, "requiere": "",
+		"desc": "Una misa cantada por el bienestar de la aldea. Sencilla, pero los vecinos la agradecen.",
+	},
+	{
+		"id": "mision", "nombre": "Misión y prédica", "ambito": "aldea",
+		"coste": {"fe": 15.0, "plata": 10.0}, "afinidade": 18.0, "requiere": "",
+		"desc": "Los monjes predican unos días en la aldea, confiesan y reparten alguna limosna.",
+	},
+	{
+		"id": "hospital", "nombre": "Hospital de pobres", "ambito": "parroquia",
+		"coste": {"plata": 20.0, "piedra": 15.0}, "afinidade": 22.0, "requiere": "enfermeria",
+		"desc": "Se abre una casa de caridad para los pobres de toda la parroquia. Obra grande, fama grande.",
+	},
+]
+const UMBRAL_DONACION := 65.0  # afinidade mínima para poder solicitar donación
 
 const CASAS_FORERAS := [
 	"Vilar", "Carballido", "Reboredo", "Souto", "Lamas", "Quintela",

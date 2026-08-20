@@ -110,6 +110,29 @@ portazgo** (evento) mejora vuestra horquilla de precios.
 **Objetivo**: mantener viva y próspera la comunidad y elevar el **prestigio**
 del monasterio. Si te quedas sin monjes (hambruna o pestes), fin de la partida.
 
+### Obras pías: cómo captar tierra nueva (ficha de aldea)
+
+Conseguir tierra **no depende del azar**: es una decisión activa. Haz **clic**
+en una aldea del territorio y encarga **obras pías**:
+
+- **Misa solemne** — barata, sube un poco la **afinidad** de esa aldea.
+- **Misión y prédica** — coste medio, sube más la afinidad.
+- **Hospital de pobres** (requiere Enfermería) — cara, sube de golpe la
+  afinidad de **toda la parroquia**.
+
+Al superar el **65% de afinidad** se desbloquea **«Solicitar donación»**: una
+tirada de probabilidad (se muestra el % de éxito antes de arriesgarte) que,
+si sale bien, añade una **leira real** en esa aldea. Cada solicitud consume
+afinidad —más si sale bien—, así que no es un botón que se pulsa sin más: hay
+que cultivarla. La afinidad también **decae con el tiempo** si se descuida
+(hacia un poso de ~30%), así que no basta con hacerlo una vez.
+
+Esto conecta con la **rivalidad**: si el obispo, la hidalguía o el monasterio
+rival dominan la parroquia, la donación cuesta más; y si la consigues, el
+monasterio gana algo de influencia allí. El viejo evento aleatorio de
+donación sigue existiendo como goteo pasivo, pero es mucho más raro: la vía
+fiable es esta.
+
 ### El Señorío y el sistema foral (botón «Señorío»)
 
 Modela el funcionamiento real de la economía monástica gallega bajomedieval:
@@ -198,9 +221,10 @@ scenes/
 scripts/
   Data.gd                     Datos: recursos, oficios, edificios, eventos,
                               comarcas, familias, cultivos, facciones, bienes
-                              de mercado, explotaciones, parroquias, topónimos
+                              de mercado, explotaciones, obras pías, parroquias
   GameState.gd                Lógica de simulación, fundación, mapa, señorío,
-                              rivalidad (influencia por parroquia) y mercado
+                              rivalidad (influencia por parroquia), mercado y
+                              obras pías (afinidad de aldea, donaciones)
   Fundacion.gd                Pantalla de fundación
   Ground.gd                   Pinta el terreno del territorio con el TileSet
   MonasteryGround.gd          Pinta el patio del monasterio
