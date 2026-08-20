@@ -22,6 +22,8 @@ script = ExtResource("2")
 
 [node name="Marcadores" type="Node2D" parent="Territorio"]
 
+[node name="Explotacions" type="Node2D" parent="Territorio"]
+
 [node name="CamTerritorio" type="Camera2D" parent="Territorio"]
 zoom_inicial = 0.8
 script = ExtResource("4")

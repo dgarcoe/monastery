@@ -55,8 +55,57 @@ territorio» / «Volver al monasterio»** (abajo):
 - **Parroquias y aldeas** (vista territorio): cada **parroquia** agrupa 3–6
   **aldeas** y rinde el **diezmo**. Haz **clic** en una parroquia o aldea para
   ver su ficha; de las casas de las aldeas salen los foreros y las donaciones.
-- **Vender manuscritos / vino** (abajo): conviértelos en plata.
+- **Vender manuscritos / vino** (abajo): conviértelos en plata (o usa el panel
+  **Mercado** para el resto de bienes).
 - La **crónica** (vista monasterio) registra construcciones y eventos.
+
+### Rivalidad: la «conquista» no militar del territorio (botón «Poderes»)
+
+No hay ejércitos: la competencia es por **influencia**. Tres facciones disputan
+el territorio con vosotros:
+
+- **El obispado** — reclama el **diezmo** y litiga con dureza en lo eclesiástico.
+- **La hidalguía local** — ávida de **foros** y señorío sobre los cotos; llega a
+  **usurpar leiras** aforadas.
+- **El monasterio rival** — otro cenobio de la comarca (marcador propio en el
+  territorio) que compite por **donaciones**, reliquias y peregrinos.
+
+Cada **parroquia** reparte su influencia entre el monasterio y estas tres
+facciones (suma 100%); la que más tenga la **domina**, y el marcador de la
+parroquia se tiñe de su color. El **diezmo que recaudáis depende de vuestra
+influencia** en cada parroquia, no solo de su número. Cada año las facciones
+empujan su influencia según su foco y poder (atenuado si tenéis buena
+relación con ellas). Vuestras palancas:
+
+- **Dotar la iglesia** (ficha de parroquia): obras y limosnas locales que ganan
+  influencia a costa de las demás facciones.
+- **Disputar** (ficha de parroquia): reclamación formal frente a la facción
+  dominante; el éxito depende de vuestro prestigio frente a su poder.
+- **Enviar favor** (panel Poderes): mejora la relación con una facción,
+  atenuando su empuje futuro.
+
+### Terreno funcional y explotaciones (panel «Poderes» → Construir)
+
+Además de campos, bosque y monte, el territorio tiene **regatos** (arroyos que
+bajan al río) y **pastos/brañas**. Sobre ellos se construyen explotaciones que
+producen cada año:
+
+- **Muíño** (sobre un regato) — muele el grano de la comarca a cambio de
+  **maquía** (plata).
+- **Canteira** (sobre un monte) — cantería de granito: **piedra**.
+- **Pasto** (sobre una braña) — cría de **gando** (ganado).
+
+Para construir: en el panel **Poderes**, pulsa el tipo de explotación deseado
+(entras en «modo construcción») y luego haz **clic** en una casilla válida del
+territorio.
+
+### Mercado regional (botón «Mercado»)
+
+Los precios de comida, vino, piedra, gando, manuscritos y **sal** (único bien
+que no producís y solo se compra) **fluctúan** según vuestra producción y la
+demanda de la comarca; las malas cosechas encarecen el grano, y un buen o mal
+año de mercado (evento) los mueve a la vez. El privilegio real de **feira y
+portazgo** (evento) mejora vuestra horquilla de precios.
 
 **Objetivo**: mantener viva y próspera la comunidad y elevar el **prestigio**
 del monasterio. Si te quedas sin monjes (hambruna o pestes), fin de la partida.
@@ -117,27 +166,36 @@ scenes/
   Main.tscn                   Escena de juego: vistas Territorio y Mosteiro
   HUD.tscn                    Interfaz (recursos, oficios, mercado, crónica)
   Building.tscn               Edificio/solar con clic
-  Aldea.tscn / Parroquia.tscn Aldea y parroquia del territorio
+  Aldea.tscn / Parroquia.tscn Aldea y parroquia del territorio (teñida por facción)
   MonMarker.tscn              Marcador del monasterio en el territorio
+  RivalMarker.tscn            Marcador del monasterio rival
+  ExplotacionMarker.tscn      Marcador de muíño/canteira/pasto construido
   Monk.tscn / Villager.tscn   Monje y aldeano (deambulan)
   SenorioPanel.tscn           Panel del señorío (patrimonio y foros)
   LeiraRow.tscn               Fila de una leira dentro del señorío
+  PoderesPanel.tscn           Panel de rivalidad (facciones, parroquias, construir)
+  MercadoPanel.tscn           Panel del mercado regional
 scripts/
   Data.gd                     Datos: recursos, oficios, edificios, eventos,
-                              comarcas, familias, cultivos, parroquias, topónimos
-  GameState.gd                Lógica de simulación, fundación, mapa y señorío
+                              comarcas, familias, cultivos, facciones, bienes
+                              de mercado, explotaciones, parroquias, topónimos
+  GameState.gd                Lógica de simulación, fundación, mapa, señorío,
+                              rivalidad (influencia por parroquia) y mercado
   Fundacion.gd                Pantalla de fundación
   Ground.gd                   Pinta el terreno del territorio con el TileSet
   MonasteryGround.gd          Pinta el patio del monasterio
   CameraController.gd         Cámara con desplazamiento y zoom (por mapa)
   Wanderer.gd                 Deambular de monjes y aldeanos
-  Aldea.gd / Parroquia.gd     Aldeas y parroquias (fichas)
+  Aldea.gd / Parroquia.gd     Aldeas y parroquias (fichas, teñido por facción)
   MonMarker.gd                Entrar al monasterio desde el territorio
+  ExplotacionMarker.gd        Sprite de una explotación construida
   Senorio.gd / LeiraRow.gd    Interfaz del sistema foral
+  Poderes.gd                  Interfaz de rivalidad y construcción de explotaciones
+  Mercado.gd                  Interfaz del mercado regional
   Building.gd / Main.gd / HUD.gd
 resources/
   monastery_tileset.tres      TileSet (hierba, camino, piedra, agua, campo,
-                              bosque, monte)
+                              bosque, monte, regato, pasto)
 assets/
   tiles/  buildings/  characters/  ui/   ← aquí van tus sprites
 ```
@@ -166,10 +224,16 @@ no tendrás que tocar ninguna escena.
 | `tiles/field.png` | 64×64 | Campo de labor |
 | `tiles/forest.png` | 64×64 | Bosque |
 | `tiles/mountain.png` | 64×64 | Monte |
+| `tiles/regato.png` | 64×64 | Regato (arroyo) |
+| `tiles/pasto.png` | 64×64 | Pasto / braña |
 | `buildings/plot.png` | 128×128 | Solar vacío (sin construir) |
 | `buildings/aldea.png` | 96×96 | Aldea (poblado) |
-| `buildings/parroquia.png` | 80×80 | Iglesia parroquial (marcador) |
-| `buildings/monasterio.png` | 144×144 | Monasterio en el territorio (marcador) |
+| `buildings/parroquia.png` | 80×80 | Iglesia parroquial (marcador, teñible) |
+| `buildings/monasterio.png` | 144×144 | Monasterio propio en el territorio |
+| `buildings/monasterio_rival.png` | 144×144 | Monasterio rival en el territorio |
+| `buildings/muino.png` | 96×96 | Explotación: muíño |
+| `buildings/canteira.png` | 96×96 | Explotación: canteira |
+| `buildings/pasto.png` (edificio) | 96×96 | Explotación: pasto/braña |
 | `buildings/church.png` | 128×128 | *(reservado)* |
 | `buildings/iglesia.png` | 128×128 | Iglesia |
 | `buildings/scriptorium.png` | 128×128 | Scriptorium |
@@ -180,7 +244,7 @@ no tendrás que tocar ninguna escena.
 | `buildings/enfermeria.png` | 128×128 | Enfermería |
 | `characters/monk.png` | 32×32 | Monje |
 | `characters/villager.png` | 28×28 | Aldeano |
-| `ui/*.png` | 48×48 | Iconos de recursos del HUD |
+| `ui/*.png` (incluye `ui/gando.png`, `ui/sal.png`) | 48×48 | Iconos de recursos del HUD |
 
 Notas:
 - Si usas otro **tamaño de tile**, ajústalo en `resources/monastery_tileset.tres`

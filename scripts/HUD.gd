@@ -6,6 +6,7 @@ extends CanvasLayer
 ## HUD.tscn y usa los iconos de assets/ui/. Los botones invocan a GameState.
 
 var _sel_edificio: String = ""
+var _sel_parroquia: int = -1
 var _vals: Dictionary = {}
 var _cnt: Dictionary = {}
 var _vista: String = "mosteiro"
@@ -15,6 +16,7 @@ func _ready() -> void:
 	_vals = {
 		"comida": %val_comida, "plata": %val_plata, "piedra": %val_piedra,
 		"fe": %val_fe, "manuscritos": %val_manuscritos, "vino": %val_vino,
+		"gando": %val_gando,
 	}
 	# Referencias a los contadores de cada oficio y conexión de botones.
 	for o in Data.OFICIOS:
@@ -30,10 +32,17 @@ func _ready() -> void:
 	%BtnVenderVino.pressed.connect(func() -> void: GameState.vender("vino", GameState.recursos["vino"]))
 	%BtnConstruir.pressed.connect(_on_construir)
 	%BtnSenorio.pressed.connect(func() -> void: %Senorio.abrir())
+	%BtnPoderes.pressed.connect(func() -> void: %Poderes.abrir())
+	%BtnMercado.pressed.connect(func() -> void: %Mercado.abrir())
+	%BtnCancelarConstruccion.pressed.connect(func() -> void: GameState.cancelar_construccion())
 	%BtnCerrar.pressed.connect(func() -> void: %Popup.hide())
 	%BtnEvtOk.pressed.connect(func() -> void: %Evento.hide())
 	%BtnReiniciar.pressed.connect(_on_reiniciar)
 	%AutoTimer.timeout.connect(func() -> void: GameState.avanzar_mes())
+	%BtnDotarIglesia.pressed.connect(func() -> void:
+		if _sel_parroquia >= 0: GameState.dotar_iglesia(_sel_parroquia))
+	%BtnDisputar.pressed.connect(func() -> void:
+		if _sel_parroquia >= 0: GameState.disputar_parroquia(_sel_parroquia))
 
 	# Señales del modelo.
 	GameState.estado_cambiado.connect(_refrescar)
@@ -45,7 +54,9 @@ func _ready() -> void:
 	GameState.parroquia_pulsada.connect(_on_parroquia)
 	GameState.vista_cambiada.connect(_on_vista)
 	%BtnVista.pressed.connect(_on_btn_vista)
-	%BtnAldeaCerrar.pressed.connect(func() -> void: %AldeaPopup.hide())
+	%BtnAldeaCerrar.pressed.connect(func() -> void:
+		_sel_parroquia = -1
+		%AldeaPopup.hide())
 
 	%Popup.hide()
 	%Evento.hide()
@@ -87,12 +98,31 @@ func _refrescar() -> void:
 	%BtnVenderVino.disabled = GameState.recursos["vino"] < 1.0
 	%BtnMes.disabled = GameState.terminado
 
+	var construyendo := GameState.modo_construccion != ""
+	%LblConstruccion.visible = construyendo
+	%BtnCancelarConstruccion.visible = construyendo
+	if construyendo:
+		var d: Dictionary = Data.EXPLOTACIONS[GameState.modo_construccion]
+		%LblConstruccion.text = "Elige en el territorio una casilla de %s para el %s…" % [
+			_nome_tile_modo(int(d["requiere_tile"])), d["nombre"]]
+
 	if %Popup.visible and _sel_edificio != "":
 		_pintar_popup(_sel_edificio)
+	if %AldeaPopup.visible and _sel_parroquia >= 0:
+		_on_parroquia(_sel_parroquia)
+
+func _nome_tile_modo(id: int) -> String:
+	match id:
+		6: return "monte"
+		7: return "regato"
+		8: return "pasto"
+		_: return "terreno"
 
 func _on_aldea(indice: int) -> void:
 	if indice < 0 or indice >= GameState.aldeas.size():
 		return
+	_sel_parroquia = -1
+	%AccionesParroquia.visible = false
 	var a: Dictionary = GameState.aldeas[indice]
 	var zona_nome: String = {
 		"cereal": "cereal (centeno y trigo)", "vinha": "viñedo",
@@ -107,13 +137,23 @@ func _on_aldea(indice: int) -> void:
 func _on_parroquia(indice: int) -> void:
 	if indice < 0 or indice >= GameState.parroquias.size():
 		return
+	_sel_parroquia = indice
 	var p: Dictionary = GameState.parroquias[indice]
 	var nomes: Array = []
 	for idx in p["aldeas"]:
 		nomes.append(GameState.aldeas[int(idx)]["nome"])
+	var dominante := GameState.faccion_dominante(p)
+	var barras := ""
+	var inf: Dictionary = p["influencia"]
+	for id in ["monasterio", "obispo", "nobreza", "rival"]:
+		barras += "  %s: %d%%\n" % [GameState.nome_faccion(id), int(inf.get(id, 0.0))]
 	%AldeaTitulo.text = "Parroquia de %s" % p["nome"]
-	%AldeaInfo.text = "Agrupa %d aldeas: %s.\n\nLas parroquias del señorío rinden el diezmo al monasterio cada año." % [
-		p["aldeas"].size(), ", ".join(nomes)]
+	%AldeaInfo.text = "Agrupa %d aldeas: %s.\n\nInfluencia (domina %s):\n%s\nLas parroquias rinden diezmo en proporción a vuestra influencia." % [
+		p["aldeas"].size(), ", ".join(nomes), GameState.nome_faccion(dominante), barras]
+	%AccionesParroquia.visible = true
+	%BtnDotarIglesia.disabled = (GameState.recursos["plata"] < GameState.COSTE_DOTAR_PLATA
+		or GameState.recursos["piedra"] < GameState.COSTE_DOTAR_PIEDRA)
+	%BtnDisputar.disabled = (dominante == "monasterio" or GameState.recursos["plata"] < GameState.COSTE_DISPUTA)
 	%AldeaPopup.show()
 
 func _on_btn_vista() -> void:

@@ -1,0 +1,79 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/Poderes.gd" id="1"]
+
+[sub_resource type="StyleBoxFlat" id="sb_panel"]
+bg_color = Color(0.13, 0.11, 0.09, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.45, 0.38, 0.28, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="PoderesPanel" type="Panel"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -370.0
+offset_top = -260.0
+offset_right = 370.0
+offset_bottom = 260.0
+theme_override_styles/panel = SubResource("sb_panel")
+script = ExtResource("1")
+
+[node name="M" type="MarginContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="V" type="VBoxContainer" parent="M"]
+theme_override_constants/separation = 8
+
+[node name="Titulo" type="Label" parent="M/V"]
+text = "Poderes del territorio · rivalidad"
+
+[node name="Resumo" type="Label" parent="M/V"]
+autowrap_mode = 3
+text = "..."
+
+[node name="TituloFacciones" type="Label" parent="M/V"]
+text = "Facciones"
+
+[node name="ScrollFacciones" type="ScrollContainer" parent="M/V"]
+custom_minimum_size = Vector2(0, 90)
+horizontal_scroll_mode = 0
+
+[node name="ListaFacciones" type="VBoxContainer" parent="M/V/ScrollFacciones"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="TituloParroquias" type="Label" parent="M/V"]
+text = "Parroquias del territorio"
+
+[node name="ScrollParroquias" type="ScrollContainer" parent="M/V"]
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="ListaParroquias" type="VBoxContainer" parent="M/V/ScrollParroquias"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="Construccion" type="VBoxContainer" parent="M/V"]
+theme_override_constants/separation = 6
+
+[node name="TituloConstruccion" type="Label" parent="M/V/Construccion"]
+text = "Construir explotación (elige y haz clic en el territorio)"
+
+[node name="Lista" type="HBoxContainer" parent="M/V/Construccion"]
+theme_override_constants/separation = 8
+
+[node name="BtnCerrar" type="Button" parent="M/V"]
+text = "Cerrar"

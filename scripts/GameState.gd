@@ -42,10 +42,22 @@ const MAPA_ALTO := 40
 var fundado: bool = false
 var comarca: String = ""
 var familia: String = ""
-var terreno: Array = []          # terreno[x][y] -> id de tile (0..6)
+var terreno: Array = []          # terreno[x][y] -> id de tile (0..8)
 var aldeas: Array = []           # aldeas del contorno (todas)
-var parroquias: Array = []       # parroquias, cada una con sus aldeas
+var parroquias: Array = []       # parroquias, cada una con sus aldeas e influencia
 var sitio_mosteiro: Vector2i = Vector2i(32, 20)
+var sitio_rival: Vector2i = Vector2i(-1, -1)  # emplazamiento del monasterio rival
+var explotacions: Array = []     # muíños, canteiras y pastos construidos
+var modo_construccion: String = ""  # tipo de EXPLOTACIONS a colocar, o ""
+
+# --- Rivalidad: facciones que disputan el territorio ------------------------
+# id -> {nome, poder, relacion(-100..100)}. "poder" mueve cuánta influencia
+# empuja la facción cada año; "relacion" atenúa su agresividad hacia el jugador.
+var facciones: Dictionary = {}
+
+# --- Mercado regional ---------------------------------------------------------
+var precios: Dictionary = {}     # bien -> precio actual (plata/unidad)
+var feira: bool = false          # privilegio real de feira y portazgo
 
 const MESES := [
 	"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -90,6 +102,10 @@ func reset() -> void:
 	terreno = []
 	aldeas = []
 	parroquias = []
+	explotacions = []
+	facciones = {}
+	precios = {}
+	feira = false
 
 ## Funda el monasterio en la comarca elegida por la familia elegida.
 ## Genera el mapa y las aldeas, y fija la dote inicial.
@@ -103,11 +119,16 @@ func fundar(comarca_id: String, familia_id: String) -> void:
 	mes = 1
 	_xerar_mapa(c)
 	_xerar_parroquias(c)
+	_xerar_influencia()
+	_xerar_facciones(c)
+	_xerar_sitio_rival()
+	explotacions = []
+	modo_construccion = ""
 
 	# Dote inicial de la familia más la bonificación de la comarca.
 	recursos = {
 		"comida": 30.0, "plata": 15.0, "fe": 6.0,
-		"manuscritos": 0.0, "vino": 0.0, "piedra": 10.0,
+		"manuscritos": 0.0, "vino": 0.0, "piedra": 10.0, "gando": 0.0,
 	}
 	for k in f["dote"]:
 		recursos[k] += float(f["dote"][k])
@@ -180,6 +201,39 @@ func _xerar_mapa(c: Dictionary) -> void:
 			elif r < float(c["bosque"]):
 				terreno[x][y] = 5  # bosque
 
+	# Regatos: pequeños afluentes que bajan del monte hacia el río.
+	var n_regatos := 4 + randi() % 4
+	for i in range(n_regatos):
+		var rx := randi() % MAPA_ANCHO
+		var y0 := 1 if randf() < 0.5 else MAPA_ALTO - 2
+		var pasos := MAPA_ALTO / 2
+		var x := rx
+		var y := y0
+		var dy := 1 if y0 < MAPA_ALTO / 2 else -1
+		for p in range(pasos):
+			if x < 0 or x >= MAPA_ANCHO or y < 0 or y >= MAPA_ALTO:
+				break
+			if terreno[x][y] == 0 or terreno[x][y] == 5 or terreno[x][y] == 6:
+				terreno[x][y] = 7  # regato
+			if terreno[x][y] == 3:
+				break  # llegó al río
+			y += dy
+			x += randi() % 3 - 1
+			x = clampi(x, 0, MAPA_ANCHO - 1)
+
+	# Brañas de pasto en pequeñas manchas, sobre hierba libre.
+	var n_brañas := 3 + randi() % 3
+	for i in range(n_brañas):
+		var bx := 2 + randi() % (MAPA_ANCHO - 4)
+		var by := 2 + randi() % (MAPA_ALTO - 4)
+		for ox in range(-1, 2):
+			for oy in range(-1, 2):
+				var xx := bx + ox
+				var yy2 := by + oy
+				if xx >= 0 and xx < MAPA_ANCHO and yy2 >= 0 and yy2 < MAPA_ALTO and terreno[xx][yy2] == 0:
+					if randf() < 0.7:
+						terreno[xx][yy2] = 8  # pasto
+
 	# Emplazamiento del monasterio: junto al río, cerca del centro.
 	var cx := MAPA_ANCHO / 2
 	for dy in range(0, MAPA_ALTO):
@@ -221,6 +275,10 @@ func _xerar_parroquias(c: Dictionary) -> void:
 				Data.ADVOCACIONS[randi() % Data.ADVOCACIONS.size()],
 				Data.LUGARES[randi() % Data.LUGARES.size()]],
 			"x": px, "y": py, "aldeas": [],
+			# Influencia inicial: el monasterio parte fuerte cerca de casa, el
+			# obispo controla la mayor parte del resto (es lo habitual: el
+			# diezmo diocesano), y hidalgos/rival se reparten un remanente.
+			"influencia": {"monasterio": 0.0, "obispo": 0.0, "nobreza": 0.0, "rival": 0.0},
 		}
 		parroquias.append(parr)
 		terreno[px][py] = 2  # atrio de piedra de la iglesia parroquial
@@ -256,6 +314,79 @@ func _xerar_parroquias(c: Dictionary) -> void:
 				if fx >= 0 and fx < MAPA_ANCHO and fy >= 0 and fy < MAPA_ALTO and terreno[fx][fy] == 0:
 					terreno[fx][fy] = 4
 			colocadas += 1
+
+## Reparte la influencia inicial de cada parroquia entre las cuatro partes:
+## el monasterio parte fuerte en las parroquias más cercanas a casa, el
+## obispo controla por defecto buena parte del resto (el diezmo diocesano es
+## la situación de partida), y hidalgos/rival se reparten un remanente menor.
+func _xerar_influencia() -> void:
+	if parroquias.is_empty():
+		return
+	var dist_max := 0.0
+	for p in parroquias:
+		dist_max = maxf(dist_max, Vector2i(p["x"], p["y"]).distance_to(sitio_mosteiro))
+	for p in parroquias:
+		var d := Vector2i(p["x"], p["y"]).distance_to(sitio_mosteiro)
+		var cercania := 1.0 - (d / dist_max if dist_max > 0.0 else 0.0)  # 1 = pegada, 0 = lejana
+		var mon := 15.0 + 25.0 * cercania
+		var obispo := 45.0 - 10.0 * cercania
+		var resto := 100.0 - mon - obispo
+		p["influencia"] = {
+			"monasterio": mon, "obispo": obispo,
+			"nobreza": resto * 0.6, "rival": resto * 0.4,
+		}
+
+func _xerar_facciones(c: Dictionary) -> void:
+	facciones = {}
+	for id in Data.FACCIONES:
+		var d: Dictionary = Data.FACCIONES[id]
+		facciones[id] = {
+			"nome": d["nombre"], "poder": float(d["agresividade"]) * float(c.get("riesgo", 1.0)),
+			"relacion": 0.0,
+		}
+
+## Facción con más influencia en una parroquia (o "" si no la hay).
+func faccion_dominante(parroquia: Dictionary) -> String:
+	var inf: Dictionary = parroquia.get("influencia", {})
+	var mellor := ""
+	var val := -1.0
+	for id in inf:
+		if float(inf[id]) > val:
+			val = float(inf[id])
+			mellor = id
+	return mellor
+
+func nome_faccion(id: String) -> String:
+	if id == "monasterio":
+		return "Vuestro monasterio"
+	return facciones.get(id, {}).get("nome", Data.FACCIONES.get(id, {}).get("nombre", id))
+
+## Sitúa al monasterio rival en un punto alejado del propio, para marcarlo en
+## el territorio (solo un marcador visual: no gestiona edificios ni monjes).
+func _xerar_sitio_rival() -> void:
+	sitio_rival = Vector2i(-1, -1)
+	var mellor_d := 0.0
+	var intentos := 0
+	while intentos < 200:
+		intentos += 1
+		var x := 3 + randi() % (MAPA_ANCHO - 6)
+		var y := 3 + randi() % (MAPA_ALTO - 6)
+		if int(terreno[x][y]) != 0:
+			continue
+		var d := Vector2i(x, y).distance_to(sitio_mosteiro)
+		if d > mellor_d:
+			mellor_d = d
+			sitio_rival = Vector2i(x, y)
+		if d > float(MAPA_ANCHO) * 0.6:
+			break
+
+## Nº de parroquias donde el monasterio es la facción dominante.
+func parroquias_dominadas() -> int:
+	var n := 0
+	for p in parroquias:
+		if faccion_dominante(p) == "monasterio":
+			n += 1
+	return n
 
 func _nova_aldea(x: int, y: int, c: Dictionary) -> Dictionary:
 	var casas: Array = []
@@ -400,16 +531,73 @@ func construir(edificio_id: String) -> bool:
 # --- Mercado ----------------------------------------------------------------
 
 func vender(recurso: String, cantidad: float) -> void:
-	if terminado or not Data.PRECIO_VENTA.has(recurso):
+	if terminado or not Data.BENS_MERCADO.has(recurso):
 		return
 	cantidad = min(cantidad, recursos.get(recurso, 0.0))
 	if cantidad <= 0:
 		return
 	recursos[recurso] -= cantidad
-	var ingreso: float = cantidad * float(Data.PRECIO_VENTA[recurso])
+	var ingreso: float = cantidad * precio_venta(recurso)
 	recursos["plata"] += ingreso
 	mensaje.emit("Vendido %d de %s por %d de plata." % [int(cantidad), recurso, int(ingreso)])
 	estado_cambiado.emit()
+
+## Compra un bien del mercado regional (p. ej. sal, que el monasterio no
+## produce). El precio de compra es siempre algo mayor que el de venta.
+func comprar(recurso: String, cantidad: float) -> bool:
+	if terminado or not Data.BENS_MERCADO.has(recurso) or cantidad <= 0.0:
+		return false
+	var coste := cantidad * precio_compra(recurso)
+	if recursos["plata"] < coste:
+		return false
+	recursos["plata"] -= coste
+	recursos[recurso] = recursos.get(recurso, 0.0) + cantidad
+	mensaje.emit("Comprado %d de %s por %d de plata." % [int(cantidad), recurso, int(coste)])
+	estado_cambiado.emit()
+	return true
+
+# --- Explotaciones (muíño, canteira, pasto) ----------------------------------
+
+## Activa el modo colocación: el siguiente clic válido en el territorio
+## construirá una explotación de este tipo (ver Main._unhandled_input).
+func iniciar_construccion(tipo: String) -> void:
+	modo_construccion = tipo
+	estado_cambiado.emit()
+
+func cancelar_construccion() -> void:
+	modo_construccion = ""
+	estado_cambiado.emit()
+
+## Construye una explotación sobre un tile del territorio (regato, monte o
+## braña, según el tipo). No se comprueba solapamiento entre explotaciones:
+## el jugador elige libremente la celda al hacer clic en el mapa.
+func construir_explotacion(tipo: String, x: int, y: int) -> bool:
+	if terminado or not Data.EXPLOTACIONS.has(tipo):
+		return false
+	var d: Dictionary = Data.EXPLOTACIONS[tipo]
+	if x < 0 or x >= MAPA_ANCHO or y < 0 or y >= MAPA_ALTO or int(terreno[x][y]) != int(d["requiere_tile"]):
+		mensaje.emit("Ahí no se puede levantar un(a) %s: hace falta %s." % [
+			d["nombre"], _nome_tile_requirido(int(d["requiere_tile"]))])
+		return false  # se mantiene el modo construcción para reintentar
+	if recursos["plata"] < float(d["coste_plata"]) or recursos["piedra"] < float(d["coste_piedra"]):
+		mensaje.emit("No hay recursos suficientes para el %s." % d["nombre"])
+		modo_construccion = ""
+		estado_cambiado.emit()
+		return false
+	recursos["plata"] -= float(d["coste_plata"])
+	recursos["piedra"] -= float(d["coste_piedra"])
+	explotacions.append({"tipo": tipo, "x": x, "y": y})
+	mensaje.emit("Se levanta un(a) %s en el territorio." % d["nombre"])
+	modo_construccion = ""
+	estado_cambiado.emit()
+	return true
+
+func _nome_tile_requirido(id: int) -> String:
+	match id:
+		6: return "monte"
+		7: return "regato"
+		8: return "pasto"
+		_: return "terreno adecuado"
 
 # --- Avance del tiempo ------------------------------------------------------
 
@@ -481,6 +669,8 @@ func _avanzar_calendario() -> void:
 
 func _fin_de_anio() -> void:
 	_reckoning_foral()
+	_reckoning_mercado()
+	_reckoning_politico()
 	# Posible ingreso de un novicio si la comunidad prospera.
 	if (recursos["fe"] >= poblacion * 6.0
 			and recursos["comida"] >= poblacion * 2.0
@@ -677,6 +867,86 @@ func dar_limosna() -> bool:
 	estado_cambiado.emit()
 	return true
 
+# --- Rivalidad: acciones del jugador sobre las parroquias -------------------
+
+const COSTE_DOTAR_PLATA := 15.0
+const COSTE_DOTAR_PIEDRA := 10.0
+const COSTE_FAVOR := 15.0
+const COSTE_DISPUTA := 20.0
+
+## Dota la iglesia parroquial (obras, ornato, limosnas locales): gana
+## influencia del monasterio en esa parroquia, a costa de quien más tenga.
+func dotar_iglesia(indice: int) -> bool:
+	if terminado or indice < 0 or indice >= parroquias.size():
+		return false
+	if recursos["plata"] < COSTE_DOTAR_PLATA or recursos["piedra"] < COSTE_DOTAR_PIEDRA:
+		return false
+	recursos["plata"] -= COSTE_DOTAR_PLATA
+	recursos["piedra"] -= COSTE_DOTAR_PIEDRA
+	var p: Dictionary = parroquias[indice]
+	_mover_influencia(p, "monasterio", 6.0)
+	prestigio += 1
+	mensaje.emit("Se dota la iglesia de %s. Crece la devoción del monasterio en la parroquia." % p["nome"])
+	estado_cambiado.emit()
+	return true
+
+## Envía un favor (regalo, gestión) a una facción para mejorar la relación con
+## ella y aplacar temporalmente su empuje sobre el territorio.
+func favor_faccion(id: String) -> bool:
+	if terminado or not facciones.has(id):
+		return false
+	if recursos["plata"] < COSTE_FAVOR:
+		return false
+	recursos["plata"] -= COSTE_FAVOR
+	var fac: Dictionary = facciones[id]
+	fac["relacion"] = clampf(float(fac["relacion"]) + 15.0, -100.0, 100.0)
+	mensaje.emit("Se envía un favor a %s. La relación mejora." % nome_faccion(id))
+	estado_cambiado.emit()
+	return true
+
+## Disputa formalmente ante la autoridad (rey u obispo, según el caso) la
+## influencia de una parroquia frente a su facción dominante. Resolución
+## inmediata: la probabilidad de éxito depende del prestigio propio frente al
+## poder de la facción rival.
+func disputar_parroquia(indice: int) -> bool:
+	if terminado or indice < 0 or indice >= parroquias.size():
+		return false
+	var p: Dictionary = parroquias[indice]
+	var rival_id := faccion_dominante(p)
+	if rival_id == "" or rival_id == "monasterio":
+		return false
+	if recursos["plata"] < COSTE_DISPUTA:
+		return false
+	recursos["plata"] -= COSTE_DISPUTA
+	var poder_rival: float = float(facciones.get(rival_id, {}).get("poder", 1.0))
+	var favorable := clampf(0.35 + prestigio * 0.002 - poder_rival * 0.15, 0.1, 0.75)
+	if randf() < favorable:
+		_mover_influencia(p, "monasterio", 18.0)
+		mensaje.emit("El monasterio gana la disputa por %s frente a %s." % [p["nome"], nome_faccion(rival_id)])
+	else:
+		var fac: Dictionary = facciones.get(rival_id, {})
+		if fac.has("relacion"):
+			fac["relacion"] = clampf(float(fac["relacion"]) - 10.0, -100.0, 100.0)
+		mensaje.emit("La disputa por %s se resuelve a favor de %s." % [p["nome"], nome_faccion(rival_id)])
+	estado_cambiado.emit()
+	return true
+
+## Traslada puntos de influencia hacia "hacia_id" en una parroquia, restando
+## proporcionalmente a las demás facciones (mantiene la suma en 100).
+func _mover_influencia(p: Dictionary, hacia_id: String, cantidade: float) -> void:
+	var inf: Dictionary = p["influencia"]
+	var total_outros := 0.0
+	for id in inf:
+		if id != hacia_id:
+			total_outros += float(inf[id])
+	if total_outros <= 0.0:
+		return
+	cantidade = minf(cantidade, total_outros)
+	for id in inf:
+		if id != hacia_id:
+			inf[id] = float(inf[id]) - cantidade * (float(inf[id]) / total_outros)
+	inf[hacia_id] = float(inf[hacia_id]) + cantidade
+
 func _nome_fraccion(valor: float) -> String:
 	for f in Data.FRACCIONES:
 		if is_equal_approx(float(f["valor"]), valor):
@@ -751,11 +1021,20 @@ func _reckoning_foral() -> void:
 	recursos["vino"] += azumbres
 	recursos["plata"] += renta_plata
 
-	# Diezmo de las parroquias y rentas del señorío jurisdiccional.
-	var diezmo_comida := parroquias.size() * 3.0 + cotos * 4.0 + vasallos * 0.6
-	var diezmo_plata := parroquias.size() * 2.0 + cotos * 3.0 + vasallos * 0.8 + prestigio * 0.05
+	# Diezmo de las parroquias, ponderado por la influencia del monasterio en
+	# cada una: una parroquia dominada por el obispo o un hidalgo apenas rinde.
+	var influencia_total := 0.0
+	for p in parroquias:
+		influencia_total += float(p["influencia"].get("monasterio", 0.0)) / 100.0
+	var diezmo_comida := influencia_total * 3.0 + cotos * 4.0 + vasallos * 0.6
+	var diezmo_plata := influencia_total * 2.0 + cotos * 3.0 + vasallos * 0.8 + prestigio * 0.05
 	recursos["comida"] = min(recursos["comida"] + diezmo_comida, almacen_max("comida"))
 	recursos["plata"] += diezmo_plata
+
+	# Producción anual de las explotaciones (muíños, canteiras, pastos).
+	for ex in explotacions:
+		var d: Dictionary = Data.EXPLOTACIONS[ex["tipo"]]
+		recursos[d["recurso"]] = recursos.get(d["recurso"], 0.0) + float(d["base"])
 
 	# Aniversarios: cumplir las misas perpetuas cuesta devoción.
 	if aniversarios > 0:
@@ -854,6 +1133,67 @@ func _resolver_pleito(l: Dictionary) -> void:
 					"Los foreros ganan el pleito y conservan «%s» con renta rebajada a oitavo." % nome)
 
 ## La gran revuelta de los irmandiños si la presión señorial es insoportable.
+# --- Rivalidad: empuje anual de las facciones -------------------------------
+
+## Cada año, obispo, hidalgos y monasterio rival empujan su influencia sobre
+## las parroquias según su foco y poder, atenuados por su relación con el
+## jugador. Puede desencadenar un evento político si el empuje es notable.
+func _reckoning_politico() -> void:
+	if parroquias.is_empty():
+		return
+	var mayor_empuje := 0.0
+	var parroquia_afectada := ""
+	for id in facciones:
+		var fac: Dictionary = facciones[id]
+		var poder: float = float(fac["poder"])
+		var freno: float = clampf(1.0 - float(fac["relacion"]) / 150.0, 0.3, 1.6)
+		for p in parroquias:
+			if faccion_dominante(p) == "monasterio" and randf() > 0.4:
+				continue  # las parroquias ya nuestras cuestan más de arrebatar
+			var empuje := poder * freno * randf_range(0.5, 1.5)
+			_mover_influencia(p, id, empuje)
+			if empuje > mayor_empuje:
+				mayor_empuje = empuje
+				parroquia_afectada = p["nome"]
+	# Relación deriva lentamente hacia neutral si no se cultiva.
+	for id in facciones:
+		var fac: Dictionary = facciones[id]
+		fac["relacion"] = float(fac["relacion"]) * 0.95
+
+# --- Mercado regional: precios dinámicos -------------------------------------
+
+## Recalcula los precios según oferta (producción/especialización de las
+## parroquias que controla el monasterio) y demanda (población propia y de las
+## aldeas). Una comarca dominada por rivales exporta menos al monasterio y sus
+## precios de venta caen; el privilegio de feira suaviza la horquilla a favor
+## del jugador.
+func _reckoning_mercado() -> void:
+	var oferta_local: Dictionary = {"comida": 0.0, "vino": 0.0, "piedra": 0.0, "gando": 0.0}
+	for l in leiras:
+		if l["estado"] in ["directa", "aforada"]:
+			var cul := cultivo_de(l)
+			var r: bool = cul["producto"] == "vino"
+			oferta_local["vino" if r else "comida"] += rendemento_leira(l)
+	for ex in explotacions:
+		var d: Dictionary = Data.EXPLOTACIONS[ex["tipo"]]
+		oferta_local[d["recurso"]] = float(oferta_local.get(d["recurso"], 0.0)) + float(d["base"])
+	var demanda := float(poblacion) + aldeas.size() * 4.0
+
+	for ben in Data.BENS_MERCADO:
+		var base: float = float(Data.BENS_MERCADO[ben]["base_prezo"])
+		var of: float = float(oferta_local.get(ben, 0.0)) + 1.0
+		var ratio := clampf(demanda / (of * 4.0), 0.5, 2.2)
+		var precio := base * ratio
+		if feira:
+			precio *= 1.15  # portazgo y mejor colocación en la feria
+		precios[ben] = precio
+
+func precio_venta(ben: String) -> float:
+	return float(precios.get(ben, float(Data.BENS_MERCADO.get(ben, {}).get("base_prezo", 1.0))))
+
+func precio_compra(ben: String) -> float:
+	return precio_venta(ben) * 1.25  # comprar siempre cuesta algo más que vender
+
 func _comprobar_revuelta() -> void:
 	if malestar < 80.0:
 		return
@@ -954,3 +1294,35 @@ func aplicar_evento(id: String) -> void:
 			cotos += 1
 			vasallos += 4 + randi() % 4
 			prestigio += 8
+		"obispo_reclama":
+			if not parroquias.is_empty():
+				var p: Dictionary = parroquias[randi() % parroquias.size()]
+				_mover_influencia(p, "obispo", 12.0)
+		"nobre_usurpa":
+			var candidatas: Array = []
+			for l in leiras:
+				if l["estado"] == "aforada" and not l.get("pleito", false):
+					candidatas.append(l)
+			if not candidatas.is_empty():
+				var l: Dictionary = candidatas[randi() % candidatas.size()]
+				l["estado"] = "yerma"
+				l["forero"] = ""
+				l["voces"] = 0
+				malestar = clampf(malestar + 5.0, 0.0, 100.0)
+		"rival_atrae_donacion":
+			if not parroquias.is_empty():
+				var p: Dictionary = parroquias[randi() % parroquias.size()]
+				_mover_influencia(p, "rival", 10.0)
+		"fundacion_rival":
+			var fac: Dictionary = facciones.get("rival", {})
+			if fac.has("poder"):
+				fac["poder"] = float(fac["poder"]) * 1.25
+		"concesion_feira":
+			feira = true
+			prestigio += 5
+		"buen_mercado":
+			for ben in precios:
+				precios[ben] = float(precios[ben]) * 1.2
+		"mal_mercado":
+			for ben in precios:
+				precios[ben] = float(precios[ben]) * 0.8

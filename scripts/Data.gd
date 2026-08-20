@@ -16,6 +16,7 @@ const RECURSOS := {
 	"manuscritos": {"nombre": "Manuscritos", "icono": "📜"},
 	"vino":        {"nombre": "Vino",        "icono": "🍷"},
 	"piedra":      {"nombre": "Piedra",      "icono": "🪨"},
+	"gando":       {"nombre": "Gando",       "icono": "🐖"},
 }
 
 # --- Oficios (a los que se asignan los monjes) ------------------------------
@@ -95,12 +96,18 @@ const EDIFICIOS := [
 	},
 ]
 
-# --- Precios de venta en el mercado (plata por unidad) ----------------------
-const PRECIO_VENTA := {
-	"manuscritos": 12,
-	"vino": 4,
-	"piedra": 2,
-	"comida": 1,
+# --- Mercado regional --------------------------------------------------------
+# Catálogo de bienes comerciables. base_prezo es el precio de referencia
+# (plata/unidad) alrededor del cual fluctúa el mercado según oferta y demanda
+# (ver GameState._reckoning_mercado). "importado" = no lo produce la comarca,
+# solo se compra (p. ej. la sal, imprescindible y traída de la costa).
+const BENS_MERCADO := {
+	"comida":      {"base_prezo": 1.0,  "importado": false},
+	"vino":        {"base_prezo": 4.0,  "importado": false},
+	"piedra":      {"base_prezo": 2.0,  "importado": false},
+	"gando":       {"base_prezo": 6.0,  "importado": false},
+	"manuscritos": {"base_prezo": 12.0, "importado": false},
+	"sal":         {"base_prezo": 3.0,  "importado": true},
 }
 
 # --- Eventos aleatorios -----------------------------------------------------
@@ -159,11 +166,40 @@ const EVENTOS := [
 		"id": "concesion_coto", "peso": 3, "titulo": "Concesión de un coto",
 		"texto": "El rey otorga al monasterio jurisdicción sobre un coto: sus vasallos quedan bajo el señorío del abad, con sus rentas y deberes.",
 	},
+	{
+		"id": "obispo_reclama", "peso": 6, "titulo": "El obispo reclama el diezmo",
+		"texto": "El obispado alega derecho preferente sobre el diezmo de una parroquia y presiona para reducir la influencia del monasterio en ella.",
+	},
+	{
+		"id": "nobre_usurpa", "peso": 6, "titulo": "Un fidalgo usurpa una leira",
+		"texto": "Un hidalgo de la comarca ocupa por la fuerza una heredad aforada, alegando derechos de señorío.",
+	},
+	{
+		"id": "rival_atrae_donacion", "peso": 6, "titulo": "El monasterio rival gana una donación",
+		"texto": "Una familia piadosa de la comarca prefiere dotar de tierras al otro cenobio antes que al vuestro.",
+	},
+	{
+		"id": "fundacion_rival", "peso": 2, "titulo": "Un nuevo monasterio en la comarca",
+		"texto": "Otra comunidad monástica se asienta en la comarca y empieza a disputar donaciones, peregrinos y parroquias.",
+	},
+	{
+		"id": "concesion_feira", "peso": 3, "titulo": "Privilegio de feira",
+		"texto": "El rey concede al monasterio el privilegio de celebrar feira y cobrar portazgo, con provecho para su comercio.",
+	},
+	{
+		"id": "buen_mercado", "peso": 6, "titulo": "Año de buen mercado",
+		"texto": "Los caminos están seguros y los mercaderes acuden en número: los precios de la comarca suben en favor de quien vende.",
+	},
+	{
+		"id": "mal_mercado", "peso": 6, "titulo": "Año de mal mercado",
+		"texto": "Malos caminos y pocos compradores: el mercado de la comarca languidece este año.",
+	},
 ]
 
 # --- Fundación: comarcas y familias -----------------------------------------
 # Parámetros de generación del mapa y rasgos de partida por comarca.
-# Ids de tile: 0 hierba, 1 camino, 2 piedra, 3 agua, 4 campo, 5 bosque, 6 monte.
+# Ids de tile: 0 hierba, 1 camino, 2 piedra, 3 agua, 4 campo, 5 bosque, 6 monte,
+# 7 regato, 8 pasto/braña.
 const COMARCAS := [
 	{
 		"id": "deza", "nombre": "Val do Deza",
@@ -292,6 +328,54 @@ const LUGARES := [
 	"Ansemil", "Deza", "Vila de Cruces", "Piloño",
 ]
 # Apellidos/casas campesinas para las familias foreras ("os de ...").
+# --- Explotacións ligadas al terreno -----------------------------------------
+# Se construyen sobre un tile válido (ver "requiere_tile") que el jugador
+# controle. Producen cada año en el balance foral, como las leiras.
+const EXPLOTACIONS := {
+	"muino": {
+		"nombre": "Muíño", "requiere_tile": 7,  # regato
+		"coste_plata": 20, "coste_piedra": 15,
+		"recurso": "plata", "base": 6.0,  # maquía: parte de la moienda en plata
+		"desc": "Muele el grano de las aldeas cercanas a cambio de maquía. Se alza junto a un regato.",
+	},
+	"canteira": {
+		"nombre": "Canteira", "requiere_tile": 6,  # monte
+		"coste_plata": 15, "coste_piedra": 5,
+		"recurso": "piedra", "base": 10.0,
+		"desc": "Cantería de granito a cielo abierto. Se abre en el monte.",
+	},
+	"pasto": {
+		"nombre": "Pasto", "requiere_tile": 8,  # braña
+		"coste_plata": 12, "coste_piedra": 4,
+		"recurso": "gando", "base": 4.0,
+		"desc": "Braña de pasto para el ganado del monasterio. Da gando (carne y cuero) al año.",
+	},
+}
+
+# --- Facciones rivales --------------------------------------------------------
+# Disputan la influencia sobre las parroquias del territorio (competencia no
+# militar): obispo, nobleza local y un monasterio rival de la comarca.
+const FACCIONES := {
+	"obispo": {
+		"nombre": "El obispado",
+		"desc": "El obispo diocesano reclama el diezmo y litiga con dureza en materia eclesiástica.",
+		"color": Color(0.55, 0.35, 0.65),
+		"foco": "diezmo", "agresividade": 0.8,
+	},
+	"nobreza": {
+		"nombre": "La hidalguía local",
+		"desc": "Un linaje de fidalgos de la comarca, ávido de foros y de señorío sobre los cotos.",
+		"color": Color(0.65, 0.25, 0.2),
+		"foco": "foros", "agresividade": 1.0,
+	},
+	"rival": {
+		"nombre": "El monasterio rival",
+		"desc": "Otro cenobio de la comarca compite por las mismas donaciones, reliquias y peregrinos.",
+		"color": Color(0.2, 0.4, 0.6),
+		"foco": "donacions", "agresividade": 0.7,
+	},
+}
+
 const CASAS_FORERAS := [
 	"Vilar", "Carballido", "Reboredo", "Souto", "Lamas", "Quintela",
 	"Bergaza", "Casal", "Outeiro", "Ponte", "Fraga", "Rego", "Cerdeira",

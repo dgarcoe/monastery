@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/HUD.gd" id="1"]
 [ext_resource type="Texture2D" path="res://assets/ui/comida.png" id="2"]
@@ -10,6 +10,9 @@
 [ext_resource type="Texture2D" path="res://assets/ui/poblacion.png" id="8"]
 [ext_resource type="Texture2D" path="res://assets/ui/prestigio.png" id="9"]
 [ext_resource type="PackedScene" path="res://scenes/SenorioPanel.tscn" id="10"]
+[ext_resource type="Texture2D" path="res://assets/ui/gando.png" id="11"]
+[ext_resource type="PackedScene" path="res://scenes/PoderesPanel.tscn" id="12"]
+[ext_resource type="PackedScene" path="res://scenes/MercadoPanel.tscn" id="13"]
 
 [sub_resource type="StyleBoxFlat" id="sb_modal"]
 bg_color = Color(0.13, 0.11, 0.09, 0.98)
@@ -108,6 +111,16 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="val_vino" type="Label" parent="UI/TopBar/M/Row"]
+unique_name_in_owner = true
+text = "0"
+
+[node name="ic_gando" type="TextureRect" parent="UI/TopBar/M/Row"]
+custom_minimum_size = Vector2(26, 26)
+texture = ExtResource("11")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="val_gando" type="Label" parent="UI/TopBar/M/Row"]
 unique_name_in_owner = true
 text = "0"
 
@@ -374,6 +387,24 @@ text = "Ir al territorio"
 unique_name_in_owner = true
 text = "Señorío"
 
+[node name="BtnPoderes" type="Button" parent="UI/BottomBar/M/Row"]
+unique_name_in_owner = true
+text = "Poderes"
+
+[node name="BtnMercado" type="Button" parent="UI/BottomBar/M/Row"]
+unique_name_in_owner = true
+text = "Mercado"
+
+[node name="LblConstruccion" type="Label" parent="UI/BottomBar/M/Row"]
+unique_name_in_owner = true
+visible = false
+text = "Elige una casilla válida en el territorio…"
+
+[node name="BtnCancelarConstruccion" type="Button" parent="UI/BottomBar/M/Row"]
+unique_name_in_owner = true
+visible = false
+text = "Cancelar"
+
 [node name="LblMalestar" type="Label" parent="UI/BottomBar/M/Row"]
 unique_name_in_owner = true
 text = "Malestar: 10%"
@@ -390,6 +421,12 @@ unique_name_in_owner = true
 text = "Vender vino"
 
 [node name="Senorio" parent="UI" instance=ExtResource("10")]
+unique_name_in_owner = true
+
+[node name="Poderes" parent="UI" instance=ExtResource("12")]
+unique_name_in_owner = true
+
+[node name="Mercado" parent="UI" instance=ExtResource("13")]
 unique_name_in_owner = true
 
 [node name="Popup" type="Panel" parent="UI"]
@@ -482,10 +519,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -240.0
-offset_top = -130.0
-offset_right = 240.0
-offset_bottom = 130.0
+offset_left = -260.0
+offset_top = -160.0
+offset_right = 260.0
+offset_bottom = 160.0
 theme_override_styles/panel = SubResource("sb_modal")
 
 [node name="M" type="MarginContainer" parent="UI/AldeaPopup"]
@@ -508,6 +545,18 @@ unique_name_in_owner = true
 autowrap_mode = 3
 size_flags_vertical = 3
 text = "..."
+
+[node name="AccionesParroquia" type="HBoxContainer" parent="UI/AldeaPopup/M/V"]
+unique_name_in_owner = true
+theme_override_constants/separation = 8
+
+[node name="BtnDotarIglesia" type="Button" parent="UI/AldeaPopup/M/V/AccionesParroquia"]
+unique_name_in_owner = true
+text = "Dotar iglesia (15🪙 10🪨)"
+
+[node name="BtnDisputar" type="Button" parent="UI/AldeaPopup/M/V/AccionesParroquia"]
+unique_name_in_owner = true
+text = "Disputar (20🪙)"
 
 [node name="BtnAldeaCerrar" type="Button" parent="UI/AldeaPopup/M/V"]
 unique_name_in_owner = true

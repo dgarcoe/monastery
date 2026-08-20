@@ -1,4 +1,4 @@
-[gd_resource type="TileSet" load_steps=15 format=3]
+[gd_resource type="TileSet" load_steps=19 format=3]
 
 [ext_resource type="Texture2D" path="res://assets/tiles/grass.png" id="1_grass"]
 [ext_resource type="Texture2D" path="res://assets/tiles/path.png" id="2_path"]
@@ -7,6 +7,8 @@
 [ext_resource type="Texture2D" path="res://assets/tiles/field.png" id="5_field"]
 [ext_resource type="Texture2D" path="res://assets/tiles/forest.png" id="6_forest"]
 [ext_resource type="Texture2D" path="res://assets/tiles/mountain.png" id="7_mountain"]
+[ext_resource type="Texture2D" path="res://assets/tiles/regato.png" id="8_regato"]
+[ext_resource type="Texture2D" path="res://assets/tiles/pasto.png" id="9_pasto"]
 
 [sub_resource type="TileSetAtlasSource" id="src_grass"]
 texture = ExtResource("1_grass")
@@ -43,6 +45,16 @@ texture = ExtResource("7_mountain")
 texture_region_size = Vector2i(64, 64)
 0:0/0 = 0
 
+[sub_resource type="TileSetAtlasSource" id="src_regato"]
+texture = ExtResource("8_regato")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="src_pasto"]
+texture = ExtResource("9_pasto")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+
 [resource]
 tile_size = Vector2i(64, 64)
 sources/0 = SubResource("src_grass")
@@ -52,3 +64,5 @@ sources/3 = SubResource("src_water")
 sources/4 = SubResource("src_field")
 sources/5 = SubResource("src_forest")
 sources/6 = SubResource("src_mountain")
+sources/7 = SubResource("src_regato")
+sources/8 = SubResource("src_pasto")

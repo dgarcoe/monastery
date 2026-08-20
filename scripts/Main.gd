@@ -1,7 +1,9 @@
 extends Node2D
 ## Escena principal con dos vistas (estilo Heroes III):
-##  - «Territorio»: el mapa grande con parroquias, aldeas y el marcador del
-##    monasterio. Se entra al monasterio pulsando su marcador.
+##  - «Territorio»: el mapa grande con parroquias, aldeas, el marcador del
+##    monasterio propio y el del monasterio rival. Se entra al monasterio
+##    pulsando su marcador. En modo construcción, un clic sobre una casilla
+##    válida levanta una explotación (muíño/canteira/pasto).
 ##  - «Mosteiro»: el patio propio del monasterio con sus edificios y monjes.
 ## Solo una vista está visible y activa a la vez.
 
@@ -10,6 +12,8 @@ const BuildingScene := preload("res://scenes/Building.tscn")
 const AldeaScene := preload("res://scenes/Aldea.tscn")
 const ParroquiaScene := preload("res://scenes/Parroquia.tscn")
 const MonMarkerScene := preload("res://scenes/MonMarker.tscn")
+const RivalMarkerScene := preload("res://scenes/RivalMarker.tscn")
+const ExplotacionMarkerScene := preload("res://scenes/ExplotacionMarker.tscn")
 
 # Centro del patio y disposición de los edificios (en celdas del patio).
 const PATIO_CENTRO := Vector2i(10, 7)
@@ -32,6 +36,7 @@ func _ready() -> void:
 	_poblar_mosteiro()
 	GameState.solicitar_vista.connect(set_vista)
 	GameState.estado_cambiado.connect(_sincronizar_monjes)
+	GameState.estado_cambiado.connect(_sincronizar_explotacions)
 	set_vista("mosteiro")
 
 func _tile_a_mundo(t: Vector2i) -> Vector2:
@@ -67,7 +72,33 @@ func _poblar_territorio() -> void:
 	var marcador := MonMarkerScene.instantiate()
 	marcador.position = _tile_a_mundo(GameState.sitio_mosteiro)
 	$Territorio/Marcadores.add_child(marcador)
+	if GameState.sitio_rival.x >= 0:
+		var rival := RivalMarkerScene.instantiate()
+		rival.position = _tile_a_mundo(GameState.sitio_rival)
+		$Territorio/Marcadores.add_child(rival)
 	$Territorio/CamTerritorio.position = _tile_a_mundo(GameState.sitio_mosteiro)
+	_sincronizar_explotacions()
+
+## Coloca un marcador por cada explotación construida (muíño/canteira/pasto).
+func _sincronizar_explotacions() -> void:
+	var cont: Node2D = $Territorio/Explotacions
+	for c in cont.get_children():
+		c.queue_free()
+	for ex in GameState.explotacions:
+		var nodo := ExplotacionMarkerScene.instantiate()
+		nodo.tipo = ex["tipo"]
+		nodo.position = _tile_a_mundo(Vector2i(int(ex["x"]), int(ex["y"])))
+		cont.add_child(nodo)
+
+## Si estamos en modo construcción, un clic en el territorio intenta levantar
+## la explotación elegida sobre la casilla pulsada.
+func _unhandled_input(event: InputEvent) -> void:
+	if GameState.modo_construccion == "" or not $Territorio.visible:
+		return
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var mundo := get_global_mouse_position()
+		var tile := Vector2i(int(floor(mundo.x / 64.0)), int(floor(mundo.y / 64.0)))
+		GameState.construir_explotacion(GameState.modo_construccion, tile.x, tile.y)
 
 # --- Poblado del monasterio -------------------------------------------------
 
