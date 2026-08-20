@@ -168,28 +168,28 @@ const COMARCAS := [
 	{
 		"id": "deza", "nombre": "Val do Deza",
 		"desc": "Tierras llanas y fértiles junto al río, de buen cereal y muchas aldeas. Próspera, pero expuesta a las incursiones.",
-		"fertilidad": 0.8, "bosque": 0.15, "monte": 0.05, "aldeas": 5,
+		"fertilidad": 0.8, "bosque": 0.15, "monte": 0.05, "parroquias": 4,
 		"zona": "cereal", "riesgo": 1.2,
 		"bonus": {"comida": 20.0},
 	},
 	{
 		"id": "trasdeza", "nombre": "Trasdeza",
 		"desc": "Comarca de montaña, con soutos de castaños y aldeas dispersas. Aislada y segura, pero de tierra pobre.",
-		"fertilidad": 0.4, "bosque": 0.4, "monte": 0.3, "aldeas": 3,
+		"fertilidad": 0.4, "bosque": 0.4, "monte": 0.3, "parroquias": 3,
 		"zona": "souto", "riesgo": 0.6,
 		"bonus": {"piedra": 20.0},
 	},
 	{
 		"id": "ulla", "nombre": "Ribeira do Ulla",
 		"desc": "Laderas de viñedo junto al gran río, en la ruta de los peregrinos. Buen comercio y donaciones.",
-		"fertilidad": 0.6, "bosque": 0.2, "monte": 0.1, "aldeas": 4,
+		"fertilidad": 0.6, "bosque": 0.2, "monte": 0.1, "parroquias": 4,
 		"zona": "vinha", "riesgo": 1.0,
 		"bonus": {"plata": 20.0},
 	},
 	{
 		"id": "camba", "nombre": "Terra de Camba",
 		"desc": "Comarca equilibrada de montes, prados y alguna veiga. Un comienzo sin extremos.",
-		"fertilidad": 0.6, "bosque": 0.25, "monte": 0.15, "aldeas": 4,
+		"fertilidad": 0.6, "bosque": 0.25, "monte": 0.15, "parroquias": 3,
 		"zona": "mixta", "riesgo": 0.9,
 		"bonus": {},
 	},
@@ -218,6 +218,13 @@ const FAMILIAS := [
 		"monjes": 5, "leiras_aforadas": 1, "leiras_directas": 0,
 		"vasallos": 2, "prestigio": 8, "fe": 20.0,
 	},
+]
+
+# Advocaciones para nombrar las parroquias (San/Santa + lugar).
+const ADVOCACIONS := [
+	"San Pedro", "Santa María", "San Xoán", "San Martiño", "San Miguel",
+	"Santa Baia", "San Salvador", "San Xurxo", "Santo Estevo", "San Cristovo",
+	"Santa Cristina", "San Mamede", "San Lourenzo", "Santa Mariña", "San Fiz",
 ]
 
 # Topónimos para las aldeas del contorno.

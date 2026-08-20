@@ -31,21 +31,32 @@ Antes de empezar eliges:
 
 Al pulsar **Fundar el monasterio** se genera un mapa nuevo y comienza la partida.
 
+### Dos vistas (estilo Heroes III)
+
+El juego tiene dos mapas y se alterna entre ellos con el botón **«Ir al
+territorio» / «Volver al monasterio»** (abajo):
+
+- **Monasterio**: el patio propio del cenobio con sus edificios y monjes. Aquí
+  se **construye/amplía** y se **reparten los oficios** (paneles a los lados).
+- **Territorio**: el mapa grande con el **monasterio** en el centro, las
+  **parroquias** y sus **aldeas**. Los paneles laterales se ocultan para dejar
+  el mapa libre. Se entra al monasterio pulsando su **marcador**.
+
 ### Controles y bucle de juego
 
 - **Navegación del mapa**: arrastra con el **botón derecho** (o central) para
   desplazarte; **rueda del ratón** para acercar/alejar.
 - **Siguiente mes ▶** (abajo): avanza la simulación un mes. **Auto**: avanza solo.
-- **Panel de oficios** (izquierda): reparte a los monjes con `-` / `+` entre
-  oración, huerto, cantería, scriptorium, viñedo y hospedería. Los oficios con
-  🔒 necesitan su edificio construido.
+- **Panel de oficios** (vista monasterio): reparte a los monjes con `-` / `+`
+  entre oración, huerto, cantería, scriptorium, viñedo y hospedería. Los oficios
+  con 🔒 necesitan su edificio construido.
 - **Edificios del monasterio**: haz **clic** en cualquier solar para ver su
   ficha y **construir / ampliar** (cuesta plata 🪙 y piedra 🪨).
-- **Aldeas del contorno**: haz **clic** en una aldea para ver su ficha
-  (población, zona, casas). De sus casas salen los foreros y de sus vecinos las
-  donaciones de tierras al monasterio.
+- **Parroquias y aldeas** (vista territorio): cada **parroquia** agrupa 3–6
+  **aldeas** y rinde el **diezmo**. Haz **clic** en una parroquia o aldea para
+  ver su ficha; de las casas de las aldeas salen los foreros y las donaciones.
 - **Vender manuscritos / vino** (abajo): conviértelos en plata.
-- La **crónica** (derecha) registra construcciones y eventos.
+- La **crónica** (vista monasterio) registra construcciones y eventos.
 
 **Objetivo**: mantener viva y próspera la comunidad y elevar el **prestigio**
 del monasterio. Si te quedas sin monjes (hambruna o pestes), fin de la partida.
@@ -103,22 +114,25 @@ Modela el funcionamiento real de la economía monástica gallega bajomedieval:
 project.godot                 Configuración y autoloads (Data, GameState)
 scenes/
   Fundacion.tscn              Escena INICIAL: elección de comarca y familia
-  Main.tscn                   Escena de juego: mapa, edificios, aldeas y monjes
+  Main.tscn                   Escena de juego: vistas Territorio y Mosteiro
   HUD.tscn                    Interfaz (recursos, oficios, mercado, crónica)
   Building.tscn               Edificio/solar con clic
-  Aldea.tscn                  Aldea del contorno con aldeanos
+  Aldea.tscn / Parroquia.tscn Aldea y parroquia del territorio
+  MonMarker.tscn              Marcador del monasterio en el territorio
   Monk.tscn / Villager.tscn   Monje y aldeano (deambulan)
   SenorioPanel.tscn           Panel del señorío (patrimonio y foros)
   LeiraRow.tscn               Fila de una leira dentro del señorío
 scripts/
   Data.gd                     Datos: recursos, oficios, edificios, eventos,
-                              comarcas, familias, cultivos, fracciones, topónimos
+                              comarcas, familias, cultivos, parroquias, topónimos
   GameState.gd                Lógica de simulación, fundación, mapa y señorío
   Fundacion.gd                Pantalla de fundación
-  Ground.gd                   Pinta el terreno generado con el TileSet
-  CameraController.gd         Cámara con desplazamiento y zoom
+  Ground.gd                   Pinta el terreno del territorio con el TileSet
+  MonasteryGround.gd          Pinta el patio del monasterio
+  CameraController.gd         Cámara con desplazamiento y zoom (por mapa)
   Wanderer.gd                 Deambular de monjes y aldeanos
-  Aldea.gd                    Aldea (aldeanos, ficha, foreros)
+  Aldea.gd / Parroquia.gd     Aldeas y parroquias (fichas)
+  MonMarker.gd                Entrar al monasterio desde el territorio
   Senorio.gd / LeiraRow.gd    Interfaz del sistema foral
   Building.gd / Main.gd / HUD.gd
 resources/
@@ -154,6 +168,8 @@ no tendrás que tocar ninguna escena.
 | `tiles/mountain.png` | 64×64 | Monte |
 | `buildings/plot.png` | 128×128 | Solar vacío (sin construir) |
 | `buildings/aldea.png` | 96×96 | Aldea (poblado) |
+| `buildings/parroquia.png` | 80×80 | Iglesia parroquial (marcador) |
+| `buildings/monasterio.png` | 144×144 | Monasterio en el territorio (marcador) |
 | `buildings/church.png` | 128×128 | *(reservado)* |
 | `buildings/iglesia.png` | 128×128 | Iglesia |
 | `buildings/scriptorium.png` | 128×128 | Scriptorium |

@@ -8,6 +8,7 @@ extends CanvasLayer
 var _sel_edificio: String = ""
 var _vals: Dictionary = {}
 var _cnt: Dictionary = {}
+var _vista: String = "mosteiro"
 
 func _ready() -> void:
 	# Referencias a las etiquetas de valor de cada recurso.
@@ -41,6 +42,9 @@ func _ready() -> void:
 	GameState.fin_de_partida.connect(_on_fin)
 	GameState.edificio_pulsado.connect(_on_edificio)
 	GameState.aldea_pulsada.connect(_on_aldea)
+	GameState.parroquia_pulsada.connect(_on_parroquia)
+	GameState.vista_cambiada.connect(_on_vista)
+	%BtnVista.pressed.connect(_on_btn_vista)
 	%BtnAldeaCerrar.pressed.connect(func() -> void: %AldeaPopup.hide())
 
 	%Popup.hide()
@@ -94,10 +98,35 @@ func _on_aldea(indice: int) -> void:
 		"cereal": "cereal (centeno y trigo)", "vinha": "viñedo",
 		"souto": "souto de castaños", "mixta": "cultivos variados",
 	}.get(a["zona"], a["zona"])
+	var parr: String = a.get("parroquia", "—")
 	%AldeaTitulo.text = "Aldea de %s" % a["nome"]
-	%AldeaInfo.text = "Población: %d familias\nContorno de %s\nCasas: %s\n\nDe estas casas salen los foreros de sus heredades, y de sus vecinos las donaciones al monasterio." % [
-		int(a["poboacion"]), zona_nome, ", ".join(a["casas"])]
+	%AldeaInfo.text = "Parroquia de %s\nPoblación: %d familias\nContorno de %s\nCasas: %s\n\nDe estas casas salen los foreros de sus heredades, y de sus vecinos las donaciones al monasterio." % [
+		parr, int(a["poboacion"]), zona_nome, ", ".join(a["casas"])]
 	%AldeaPopup.show()
+
+func _on_parroquia(indice: int) -> void:
+	if indice < 0 or indice >= GameState.parroquias.size():
+		return
+	var p: Dictionary = GameState.parroquias[indice]
+	var nomes: Array = []
+	for idx in p["aldeas"]:
+		nomes.append(GameState.aldeas[int(idx)]["nome"])
+	%AldeaTitulo.text = "Parroquia de %s" % p["nome"]
+	%AldeaInfo.text = "Agrupa %d aldeas: %s.\n\nLas parroquias del señorío rinden el diezmo al monasterio cada año." % [
+		p["aldeas"].size(), ", ".join(nomes)]
+	%AldeaPopup.show()
+
+func _on_btn_vista() -> void:
+	GameState.solicitar_vista.emit("territorio" if _vista == "mosteiro" else "mosteiro")
+
+func _on_vista(vista: String) -> void:
+	_vista = vista
+	var en_mosteiro := vista == "mosteiro"
+	# Los paneles de oficios y crónica pertenecen a la vista del monasterio;
+	# en el territorio se ocultan para dejar el mapa libre.
+	%OficiosPanel.visible = en_mosteiro
+	%CronicaPanel.visible = en_mosteiro
+	%BtnVista.text = "Ir al territorio" if en_mosteiro else "Volver al monasterio"
 
 func _on_edificio(edificio_id: String) -> void:
 	_sel_edificio = edificio_id

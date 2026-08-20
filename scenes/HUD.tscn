@@ -145,6 +145,7 @@ unique_name_in_owner = true
 text = "Invierno"
 
 [node name="OficiosPanel" type="PanelContainer" parent="UI"]
+unique_name_in_owner = true
 offset_left = 8.0
 offset_top = 64.0
 offset_right = 350.0
@@ -309,6 +310,7 @@ autowrap_mode = 3
 text = "Haz clic en un edificio del mapa para construirlo o ampliarlo."
 
 [node name="CronicaPanel" type="PanelContainer" parent="UI"]
+unique_name_in_owner = true
 anchor_left = 1.0
 anchor_right = 1.0
 offset_left = -368.0
@@ -363,6 +365,10 @@ unique_name_in_owner = true
 text = "Auto"
 
 [node name="Sep1" type="VSeparator" parent="UI/BottomBar/M/Row"]
+
+[node name="BtnVista" type="Button" parent="UI/BottomBar/M/Row"]
+unique_name_in_owner = true
+text = "Ir al territorio"
 
 [node name="BtnSenorio" type="Button" parent="UI/BottomBar/M/Row"]
 unique_name_in_owner = true

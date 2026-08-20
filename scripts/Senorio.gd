@@ -51,7 +51,7 @@ func _resumen() -> String:
 		GameState.leiras.size(), GameState.contar_leiras("directa"),
 		GameState.contar_leiras("aforada"), GameState.contar_leiras("yerma"),
 		GameState.cotos, GameState.vasallos, GameState.aniversarios,
-		int(GameState.malestar), int(renta["grao"]), int(renta["vino"]), GameState.cotos,
+		int(GameState.malestar), int(renta["grao"]), int(renta["vino"]), GameState.parroquias.size(),
 		GameState.pleitos_en_curso()]
 
 func _on_accion(indice: int, tipo: String) -> void:

@@ -1,13 +1,18 @@
 extends Node2D
-## Escena principal de juego. Coloca el monasterio y las aldeas sobre el mapa
-## generado en la fundación, y mantiene a los monjes en sincronía con la
-## población. El terreno lo pinta Ground.gd.
+## Escena principal con dos vistas (estilo Heroes III):
+##  - «Territorio»: el mapa grande con parroquias, aldeas y el marcador del
+##    monasterio. Se entra al monasterio pulsando su marcador.
+##  - «Mosteiro»: el patio propio del monasterio con sus edificios y monjes.
+## Solo una vista está visible y activa a la vez.
 
 const MonkScene := preload("res://scenes/Monk.tscn")
 const BuildingScene := preload("res://scenes/Building.tscn")
 const AldeaScene := preload("res://scenes/Aldea.tscn")
+const ParroquiaScene := preload("res://scenes/Parroquia.tscn")
+const MonMarkerScene := preload("res://scenes/MonMarker.tscn")
 
-# Disposición de los edificios alrededor del emplazamiento (en celdas).
+# Centro del patio y disposición de los edificios (en celdas del patio).
+const PATIO_CENTRO := Vector2i(10, 7)
 const LAYOUT := {
 	"iglesia": Vector2i(0, 0),
 	"scriptorium": Vector2i(-3, 0),
@@ -18,50 +23,72 @@ const LAYOUT := {
 	"molino": Vector2i(3, 3),
 }
 
-@onready var monks: Node2D = $Monks
-@onready var buildings: Node2D = $Buildings
-@onready var aldeas_node: Node2D = $Aldeas
-@onready var camera: Camera2D = $Camera
-
 func _enter_tree() -> void:
-	# Si se ejecuta Main directamente sin fundar (p. ej. desde el editor),
-	# funda una partida por defecto ANTES de que Ground pinte el terreno.
 	if not GameState.fundado:
 		GameState.fundar("camba", "labradores")
 
 func _ready() -> void:
-	_colocar_edificios()
-	_colocar_aldeas()
-	camera.position = _tile_a_mundo(GameState.sitio_mosteiro)
-	_sincronizar_monjes()
+	_poblar_territorio()
+	_poblar_mosteiro()
+	GameState.solicitar_vista.connect(set_vista)
 	GameState.estado_cambiado.connect(_sincronizar_monjes)
+	set_vista("mosteiro")
 
 func _tile_a_mundo(t: Vector2i) -> Vector2:
 	return Vector2(t.x * 64 + 32, t.y * 64 + 32)
 
-func _colocar_edificios() -> void:
-	for id in LAYOUT:
-		var b := BuildingScene.instantiate()
-		b.edificio_id = id
-		b.position = _tile_a_mundo(GameState.sitio_mosteiro + LAYOUT[id])
-		buildings.add_child(b)
+# --- Cambio de vista --------------------------------------------------------
 
-func _colocar_aldeas() -> void:
+func set_vista(vista: String) -> void:
+	var en_mosteiro := vista == "mosteiro"
+	$Territorio.visible = not en_mosteiro
+	$Mosteiro.visible = en_mosteiro
+	if en_mosteiro:
+		$Mosteiro/CamMosteiro.make_current()
+	else:
+		$Territorio/CamTerritorio.make_current()
+	GameState.vista_cambiada.emit(vista)
+
+# --- Poblado del territorio -------------------------------------------------
+
+func _poblar_territorio() -> void:
+	for i in range(GameState.parroquias.size()):
+		var p: Dictionary = GameState.parroquias[i]
+		var nodo := ParroquiaScene.instantiate()
+		nodo.position = _tile_a_mundo(Vector2i(int(p["x"]), int(p["y"])))
+		$Territorio/Parroquias.add_child(nodo)
+		nodo.configurar(i)
 	for i in range(GameState.aldeas.size()):
 		var a: Dictionary = GameState.aldeas[i]
 		var nodo := AldeaScene.instantiate()
 		nodo.position = _tile_a_mundo(Vector2i(int(a["x"]), int(a["y"])))
-		aldeas_node.add_child(nodo)
+		$Territorio/Aldeas.add_child(nodo)
 		nodo.configurar(i)
+	var marcador := MonMarkerScene.instantiate()
+	marcador.position = _tile_a_mundo(GameState.sitio_mosteiro)
+	$Territorio/Marcadores.add_child(marcador)
+	$Territorio/CamTerritorio.position = _tile_a_mundo(GameState.sitio_mosteiro)
 
-## Añade o quita monjes para que coincidan con GameState.poblacion.
+# --- Poblado del monasterio -------------------------------------------------
+
+func _poblar_mosteiro() -> void:
+	for id in LAYOUT:
+		var b := BuildingScene.instantiate()
+		b.edificio_id = id
+		b.position = _tile_a_mundo(PATIO_CENTRO + LAYOUT[id])
+		$Mosteiro/Buildings.add_child(b)
+	$Mosteiro/CamMosteiro.position = _tile_a_mundo(PATIO_CENTRO)
+	_sincronizar_monjes()
+
+## Ajusta los monjes visibles del patio a la población actual.
 func _sincronizar_monjes() -> void:
-	var centro := _tile_a_mundo(GameState.sitio_mosteiro)
+	var monks: Node2D = $Mosteiro/Monks
+	var centro := _tile_a_mundo(PATIO_CENTRO)
 	var actuales := monks.get_child_count()
 	while actuales < GameState.poblacion:
 		var m := MonkScene.instantiate()
-		m.position = centro + Vector2(randf_range(-95.0, 95.0), randf_range(-75.0, 95.0))
-		m.radio = 95.0
+		m.position = centro + Vector2(randf_range(-160.0, 160.0), randf_range(-110.0, 110.0))
+		m.radio = 90.0
 		monks.add_child(m)
 		actuales += 1
 	while actuales > GameState.poblacion:

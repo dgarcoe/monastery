@@ -11,6 +11,9 @@ signal evento(titulo: String, texto: String) ## Evento aleatorio para mostrar.
 signal fin_de_partida(texto: String)         ## La partida ha terminado.
 signal edificio_pulsado(edificio_id: String) ## Se hizo clic en un edificio del mapa.
 signal aldea_pulsada(indice: int)             ## Se hizo clic en una aldea del mapa.
+signal parroquia_pulsada(indice: int)         ## Se hizo clic en una parroquia.
+signal vista_cambiada(vista: String)          ## Vista aplicada: "mosteiro" | "territorio".
+signal solicitar_vista(vista: String)         ## Petición de cambio de vista.
 
 # --- Estado -----------------------------------------------------------------
 var recursos: Dictionary = {}
@@ -34,14 +37,15 @@ var malestar: float = 10.0  # descontento campesino (0..100)
 var _revuelta_ocurrida: bool = false
 
 # --- Fundación, comarca y mapa ----------------------------------------------
-const MAPA_ANCHO := 40
-const MAPA_ALTO := 26
+const MAPA_ANCHO := 64
+const MAPA_ALTO := 40
 var fundado: bool = false
 var comarca: String = ""
 var familia: String = ""
 var terreno: Array = []          # terreno[x][y] -> id de tile (0..6)
-var aldeas: Array = []           # aldeas del contorno
-var sitio_mosteiro: Vector2i = Vector2i(20, 13)
+var aldeas: Array = []           # aldeas del contorno (todas)
+var parroquias: Array = []       # parroquias, cada una con sus aldeas
+var sitio_mosteiro: Vector2i = Vector2i(32, 20)
 
 const MESES := [
 	"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -85,6 +89,7 @@ func reset() -> void:
 	familia = ""
 	terreno = []
 	aldeas = []
+	parroquias = []
 
 ## Funda el monasterio en la comarca elegida por la familia elegida.
 ## Genera el mapa y las aldeas, y fija la dote inicial.
@@ -97,7 +102,7 @@ func fundar(comarca_id: String, familia_id: String) -> void:
 	anio = 750
 	mes = 1
 	_xerar_mapa(c)
-	_xerar_aldeas(c)
+	_xerar_parroquias(c)
 
 	# Dote inicial de la familia más la bonificación de la comarca.
 	recursos = {
@@ -188,33 +193,69 @@ func _xerar_mapa(c: Dictionary) -> void:
 			if x >= 0 and x < MAPA_ANCHO and y >= 0 and y < MAPA_ALTO and terreno[x][y] == 0:
 				terreno[x][y] = 2
 
-func _xerar_aldeas(c: Dictionary) -> void:
+## Genera las parroquias del contorno, cada una con 3–6 aldeas agrupadas.
+func _xerar_parroquias(c: Dictionary) -> void:
 	aldeas = []
-	var obxectivo := int(c["aldeas"])
+	parroquias = []
+	var n_parr := int(c.get("parroquias", 3))
 	var intentos := 0
-	while aldeas.size() < obxectivo and intentos < 400:
+	while parroquias.size() < n_parr and intentos < 800:
 		intentos += 1
-		var x := 2 + randi() % (MAPA_ANCHO - 4)
-		var y := 2 + randi() % (MAPA_ALTO - 4)
-		if terreno[x][y] != 0:
+		var px := 5 + randi() % (MAPA_ANCHO - 10)
+		var py := 5 + randi() % (MAPA_ALTO - 10)
+		if terreno[px][py] != 0:
 			continue
-		var pos := Vector2i(x, y)
-		if pos.distance_to(sitio_mosteiro) < 5.0:
+		var pc := Vector2i(px, py)
+		if pc.distance_to(sitio_mosteiro) < 9.0:
 			continue
-		var demasiado_cerca := false
-		for a in aldeas:
-			if pos.distance_to(Vector2i(a["x"], a["y"])) < 5.0:
-				demasiado_cerca = true
+		var cerca := false
+		for p in parroquias:
+			if pc.distance_to(Vector2i(p["x"], p["y"])) < 12.0:
+				cerca = true
 				break
-		if demasiado_cerca:
+		if cerca:
 			continue
-		aldeas.append(_nova_aldea(x, y, c))
-		# Marca un par de campos de labor junto a la aldea.
-		for d: Vector2i in [Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0)]:
-			var fx: int = x + d.x
-			var fy: int = y + d.y
-			if fx >= 0 and fx < MAPA_ANCHO and fy >= 0 and fy < MAPA_ALTO and terreno[fx][fy] == 0:
-				terreno[fx][fy] = 4
+		var idx_parr := parroquias.size()
+		var parr := {
+			"nome": "%s de %s" % [
+				Data.ADVOCACIONS[randi() % Data.ADVOCACIONS.size()],
+				Data.LUGARES[randi() % Data.LUGARES.size()]],
+			"x": px, "y": py, "aldeas": [],
+		}
+		parroquias.append(parr)
+		terreno[px][py] = 2  # atrio de piedra de la iglesia parroquial
+		# 3–6 aldeas alrededor de la parroquia.
+		var n_ald := 3 + randi() % 4
+		var colocadas := 0
+		var t2 := 0
+		while colocadas < n_ald and t2 < 300:
+			t2 += 1
+			var ax := clampi(px + randi() % 13 - 6, 1, MAPA_ANCHO - 2)
+			var ay := clampi(py + randi() % 13 - 6, 1, MAPA_ALTO - 2)
+			if terreno[ax][ay] != 0:
+				continue
+			var apos := Vector2i(ax, ay)
+			if apos.distance_to(pc) < 2.0 or apos.distance_to(sitio_mosteiro) < 6.0:
+				continue
+			var solapa := false
+			for a in aldeas:
+				if apos.distance_to(Vector2i(a["x"], a["y"])) < 3.0:
+					solapa = true
+					break
+			if solapa:
+				continue
+			var ald := _nova_aldea(ax, ay, c)
+			ald["parroquia"] = parr["nome"]
+			ald["parroquia_idx"] = idx_parr
+			parr["aldeas"].append(aldeas.size())
+			aldeas.append(ald)
+			# Marca campos de labor junto a la aldea.
+			for d: Vector2i in [Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0)]:
+				var fx: int = ax + d.x
+				var fy: int = ay + d.y
+				if fx >= 0 and fx < MAPA_ANCHO and fy >= 0 and fy < MAPA_ALTO and terreno[fx][fy] == 0:
+					terreno[fx][fy] = 4
+			colocadas += 1
 
 func _nova_aldea(x: int, y: int, c: Dictionary) -> Dictionary:
 	var casas: Array = []
@@ -710,9 +751,9 @@ func _reckoning_foral() -> void:
 	recursos["vino"] += azumbres
 	recursos["plata"] += renta_plata
 
-	# Diezmo y rentas del señorío jurisdiccional (cotos y vasallos).
-	var diezmo_comida := cotos * 4.0 + vasallos * 0.6
-	var diezmo_plata := cotos * 3.0 + vasallos * 0.8 + prestigio * 0.05
+	# Diezmo de las parroquias y rentas del señorío jurisdiccional.
+	var diezmo_comida := parroquias.size() * 3.0 + cotos * 4.0 + vasallos * 0.6
+	var diezmo_plata := parroquias.size() * 2.0 + cotos * 3.0 + vasallos * 0.8 + prestigio * 0.05
 	recursos["comida"] = min(recursos["comida"] + diezmo_comida, almacen_max("comida"))
 	recursos["plata"] += diezmo_plata
 
