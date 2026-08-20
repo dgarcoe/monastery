@@ -44,6 +44,7 @@ var comarca: String = ""
 var familia: String = ""
 var terreno: Array = []          # terreno[x][y] -> id de tile (0..8)
 var aldeas: Array = []           # aldeas del contorno (todas)
+var _nomes_aldea_usados: Dictionary = {}  # evita repetir nombre de aldea
 var parroquias: Array = []       # parroquias, cada una con sus aldeas e influencia
 var sitio_mosteiro: Vector2i = Vector2i(32, 20)
 var sitio_rival: Vector2i = Vector2i(-1, -1)  # emplazamiento del monasterio rival
@@ -101,6 +102,7 @@ func reset() -> void:
 	familia = ""
 	terreno = []
 	aldeas = []
+	_nomes_aldea_usados = {}
 	parroquias = []
 	explotacions = []
 	facciones = {}
@@ -388,13 +390,36 @@ func parroquias_dominadas() -> int:
 			n += 1
 	return n
 
+## Nombre de aldea sin repetir dentro de la partida. Si se agotase la lista
+## de topónimos (no ocurre con el máximo actual de aldeas), combina dos para
+## seguir garantizando nombres distintos.
+func _novo_nome_aldea() -> String:
+	var candidatos: Array = []
+	for n in Data.NOMES_ALDEA:
+		if not _nomes_aldea_usados.has(n):
+			candidatos.append(n)
+	var nome: String
+	if not candidatos.is_empty():
+		nome = candidatos[randi() % candidatos.size()]
+	else:
+		var base: String = Data.NOMES_ALDEA[randi() % Data.NOMES_ALDEA.size()]
+		var otro: String = Data.NOMES_ALDEA[randi() % Data.NOMES_ALDEA.size()]
+		nome = "%s de %s" % [base, otro]
+		var intentos := 0
+		while _nomes_aldea_usados.has(nome) and intentos < 20:
+			otro = Data.NOMES_ALDEA[randi() % Data.NOMES_ALDEA.size()]
+			nome = "%s de %s" % [base, otro]
+			intentos += 1
+	_nomes_aldea_usados[nome] = true
+	return nome
+
 func _nova_aldea(x: int, y: int, c: Dictionary) -> Dictionary:
 	var casas: Array = []
 	var n := 3 + randi() % 3
 	for i in range(n):
 		casas.append(Data.CASAS_FORERAS[randi() % Data.CASAS_FORERAS.size()])
 	return {
-		"nome": Data.NOMES_ALDEA[randi() % Data.NOMES_ALDEA.size()],
+		"nome": _novo_nome_aldea(),
 		"x": x, "y": y,
 		"poboacion": 3 + randi() % 6,
 		"zona": c["zona"],

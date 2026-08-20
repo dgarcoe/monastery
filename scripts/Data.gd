@@ -263,11 +263,17 @@ const ADVOCACIONS := [
 	"Santa Cristina", "San Mamede", "San Lourenzo", "Santa Mariña", "San Fiz",
 ]
 
-# Topónimos para las aldeas del contorno.
+# Topónimos para las aldeas del contorno. La lista es más larga que el máximo
+# de aldeas por partida para que no haga falta repetir nombres (ver
+# GameState._novo_nome_aldea, que además evita duplicados si algún día se
+# agota).
 const NOMES_ALDEA := [
 	"Vilameán", "Reboredo", "Fontao", "Castrelo", "A Bergaza", "Merza",
 	"Piloño", "Ansemil", "Carboeiro", "Gresande", "Trasfontao", "Saídres",
 	"Escuadro", "Dornelas", "Cristimil", "Toiriz", "Xestoso", "Bermés",
+	"Vilanova", "Rebordelo", "Cortegada", "Amiudal", "Bendoiro", "Loimil",
+	"Prado", "Cira", "Bandeira", "Ouzande", "Ribela", "Camposancos",
+	"Sotelo", "Riobó", "Insua", "Codeseda", "Faramello", "Vilar de Barrio",
 ]
 
 # --- Sistema foral: cultivos ------------------------------------------------
